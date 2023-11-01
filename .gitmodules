@@ -1,0 +1,3 @@
+[submodule "sportsipy"]
+	path = sportsipy
+	url = https://github.com/davidjkrause/sportsipy
