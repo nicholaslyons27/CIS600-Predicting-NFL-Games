@@ -1,38 +1,70 @@
-# Code Comment below (# %%) wraps file in an Jypter code cell and runs in interactive window. Use for visualization of dataframes
+# Code comment below (# %%) wraps file in an Jypter code cell and runs in interactive window. Use for visualization of dataframes
 # %%
 from sportsipy.nfl.boxscore import Boxscores  # Retrieve a dictionary which contains a major game data of all games being played on a particular day.
 from sportsipy.nfl.boxscore import Boxscore  # Detailed information about the final statistics for a game.
 import pandas as pd
 import sys
 
+"""
+Coding Standard
+    Suffix Summary:
+        _BOX                    Either a Boxscores Object (set of games) or a Boxscore Object (single game)
+                                EX. Boxscores(W, YYYY, W) or Boxscore(URI)
+        
+        _SUM                    Brief summary of a set of games or a single game
+                                EX. Boxscores.games or Boxscores.games[W-YYYY][Game #]
+        
+        _DF                     Any object/variable coverted to a pandas.DataFrame           
+"""
 
-def main():
-    if (False):
-        # Create Boxscores Object for the 2023 season weeks 1 - 8
-        week1thru8_BOX = Boxscores(1, 2023, 8)
-        print("Boxscore Class: ")
-        print(week1thru8_BOX)
+def sportsipy_submodule_summary():
+    """
+    Instantiate and print some of the various Data Types within the sportsipy submodule.
+    This function is only used for debugging and helping developers understand the each module.
 
-        # Print dictionary of all games played within the Boxscores' scope (Weeks 1 - 8)
-        # Format {Week: [{Array of dictionaries that contain game info}]}
-        # print("\nGames: ")
-        # print(week1thru8_BOX.games)
+    Args:
+        None
 
-        # Get week 1, game 1's URI
-        week1_game1_URI = week1thru8_BOX.games['1-2023'][0]['boxscore']
-        print("\nGame 0 URI: ")
-        print(week1_game1_URI)
+    Returns:
+        None
+    """
 
-        # Create Detailed Boxscore object using URI
-        week1_game1_BOX = Boxscore(week1_game1_URI)
+    # Create Boxscores Object for the 2023 season weeks 1 - 8
+    week1thru8_BOX = Boxscores(1, 2023, 8)
+    print("Boxscore Class: ")
+    print(week1thru8_BOX)
 
-        # Create dataframe out of week 1, game 1's boxscore
-        week1_game1_DF = week1_game1_BOX.dataframe
+    # Print dictionary of all games played within the Boxscores' scope (Weeks 1 - 8)
+    # Format {Week: [{Array of dictionaries that contain game info}]}
+    week1thru8_SUM = week1thru8_BOX.games
+    print("\nBoxscore.games: ")
+    print(week1thru8_SUM)
 
-    display(get_schedule(2023, 1, 3))
+    # Print brief summary of a single game within Boxscore's scope.
+    # This is the short version of a Boxscore Object
+    week1_game1_SUM = week1thru8_BOX.games['1-2023'][0]
+    week1_game1_SUM_DF = pd.DataFrame.from_dict([week1_game1_SUM])
+    print("\nGame 0 Summary: ")
+    print(week1_game1_SUM_DF.to_string())
+
+    # Get week 1, game 1's URI
+    week1_game1_URI = week1thru8_BOX.games['1-2023'][0]['boxscore']
+    print("\nGame 0 URI: ")
+    print(week1_game1_URI)
+
+    # Create Detailed Boxscore object using URI
+    week1_game1_BOX = Boxscore(week1_game1_URI)
+    print("\nBoxscore Week 1 Game 1: ")
+    print(week1_game1_URI)
+
+    # Create dataframe out of week 1, game 1's boxscore
+    week1_game1_BOX_DF = week1_game1_BOX.dataframe
+    print("\Boxscore Week 1 Game 1 DataFrame: ")
+    print(week1_game1_BOX_DF.to_string())
 
 def get_schedule(year, firstweek, lastweek):
-    """Create a pandas.DataFrame of games played within a specified timeframe.
+    """
+    Create a pandas.DataFrame of games played within a specified timeframe.
 
     Args:
         year (int): Year of schedule query
@@ -79,6 +111,12 @@ def get_schedule(year, firstweek, lastweek):
 
     return schedule_DF
 
+def main():
+    sportsipy_submodule_summary()
+
+    # Tests for get_schedule function
+    # display(get_schedule(2023, 1, 3))
+    # print(get_schedule(2023, 1, 1).to_string())
 
 if __name__ == "__main__":
     try:
