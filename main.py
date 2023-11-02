@@ -113,74 +113,67 @@ def get_schedule(year, firstweek, lastweek):
 
     return schedule_SUM_DF
 
-def game_data(game_df, game_stats):
-    try:
-        away_team_df = game_df[['away_name', 'away_abbr', 'away_score']].rename(columns = {'away_name': 'team_name', 'away_abbr': 'team_abbr', 'away_score': 'score'})
-        home_team_df = game_df[['home_name','home_abbr', 'home_score']].rename(columns = {'home_name': 'team_name', 'home_abbr': 'team_abbr', 'home_score': 'score'})
-        try:
-            if game_df.loc[0,'away_score'] > game_df.loc[0,'home_score']:
-                away_team_df = pd.merge(away_team_df, pd.DataFrame({'game_won' : [1], 'game_lost' : [0]}),left_index = True, right_index = True)
-                home_team_df = pd.merge(home_team_df, pd.DataFrame({'game_won' : [0], 'game_lost' : [1]}),left_index = True, right_index = True)
-            elif game_df.loc[0,'away_score'] < game_df.loc[0,'home_score']:
-                away_team_df = pd.merge(away_team_df, pd.DataFrame({'game_won' : [0], 'game_lost' : [1]}),left_index = True, right_index = True)
-                home_team_df = pd.merge(home_team_df, pd.DataFrame({'game_won' : [1], 'game_lost' : [0]}),left_index = True, right_index = True)
-            else: 
-                away_team_df = pd.merge(away_team_df, pd.DataFrame({'game_won' : [0], 'game_lost' : [0]}),left_index = True, right_index = True)
-                home_team_df = pd.merge(home_team_df, pd.DataFrame({'game_won' : [0], 'game_lost' : [0]}),left_index = True, right_index = True)
-        except TypeError:    
-                away_team_df = pd.merge(away_team_df, pd.DataFrame({'game_won' : [np.nan], 'game_lost' : [np.nan]}),left_index = True, right_index = True)
-                home_team_df = pd.merge(home_team_df, pd.DataFrame({'game_won' : [np.nan], 'game_lost' : [np.nan]}),left_index = True, right_index = True)     
+def clean_game_data(game_SUM_DF, game_BOX):
+    """
+        Clean data from a single game and return two pandas.DataFrames that has the cleaned data in a more usable form.
+        'away_' and 'home_' prefixes are removed, time of possession is converted into seconds, game result is converted from a string of team_abbr to a 1 or 0. 
 
-        away_stats_df = game_stats.dataframe[['away_first_downs', 'away_fourth_down_attempts',
-            'away_fourth_down_conversions', 'away_fumbles', 'away_fumbles_lost',
-            'away_interceptions', 'away_net_pass_yards', 'away_pass_attempts',
-            'away_pass_completions', 'away_pass_touchdowns', 'away_pass_yards',
-            'away_penalties', 'away_points', 'away_rush_attempts',
-            'away_rush_touchdowns', 'away_rush_yards', 'away_third_down_attempts',
-            'away_third_down_conversions', 'away_time_of_possession',
-            'away_times_sacked', 'away_total_yards', 'away_turnovers',
-            'away_yards_from_penalties', 'away_yards_lost_from_sacks']].reset_index().drop(columns ='index').rename(columns = {
-            'away_first_downs': 'first_downs', 'away_fourth_down_attempts':'fourth_down_attempts',
-            'away_fourth_down_conversions':'fourth_down_conversions' , 'away_fumbles': 'fumbles', 'away_fumbles_lost': 'fumbles_lost',
-            'away_interceptions': 'interceptions', 'away_net_pass_yards':'net_pass_yards' , 'away_pass_attempts': 'pass_attempts',
-            'away_pass_completions':'pass_completions' , 'away_pass_touchdowns': 'pass_touchdowns', 'away_pass_yards': 'pass_yards',
-            'away_penalties': 'penalties', 'away_points': 'points', 'away_rush_attempts': 'rush_attempts',
-            'away_rush_touchdowns': 'rush_touchdowns', 'away_rush_yards': 'rush_yards', 'away_third_down_attempts': 'third_down_attempts',
-            'away_third_down_conversions': 'third_down_conversions', 'away_time_of_possession': 'time_of_possession',
-            'away_times_sacked': 'times_sacked', 'away_total_yards': 'total_yards', 'away_turnovers': 'turnovers',
-            'away_yards_from_penalties':'yards_from_penalties', 'away_yards_lost_from_sacks': 'yards_lost_from_sacks'})
-        home_stats_df = game_stats.dataframe[['home_first_downs', 'home_fourth_down_attempts',
-            'home_fourth_down_conversions', 'home_fumbles', 'home_fumbles_lost',
-            'home_interceptions', 'home_net_pass_yards', 'home_pass_attempts',
-            'home_pass_completions', 'home_pass_touchdowns', 'home_pass_yards',
-            'home_penalties', 'home_points', 'home_rush_attempts',
-            'home_rush_touchdowns', 'home_rush_yards', 'home_third_down_attempts',
-            'home_third_down_conversions', 'home_time_of_possession',
-            'home_times_sacked', 'home_total_yards', 'home_turnovers',
-            'home_yards_from_penalties', 'home_yards_lost_from_sacks']].reset_index().drop(columns = 'index').rename(columns = {
-            'home_first_downs': 'first_downs', 'home_fourth_down_attempts':'fourth_down_attempts',
-            'home_fourth_down_conversions':'fourth_down_conversions' , 'home_fumbles': 'fumbles', 'home_fumbles_lost': 'fumbles_lost',
-            'home_interceptions': 'interceptions', 'home_net_pass_yards':'net_pass_yards' , 'home_pass_attempts': 'pass_attempts',
-            'home_pass_completions':'pass_completions' , 'home_pass_touchdowns': 'pass_touchdowns', 'home_pass_yards': 'pass_yards',
-            'home_penalties': 'penalties', 'home_points': 'points', 'home_rush_attempts': 'rush_attempts',
-            'home_rush_touchdowns': 'rush_touchdowns', 'home_rush_yards': 'rush_yards', 'home_third_down_attempts': 'third_down_attempts',
-            'home_third_down_conversions': 'third_down_conversions', 'home_time_of_possession': 'time_of_possession',
-            'home_times_sacked': 'times_sacked', 'home_total_yards': 'total_yards', 'home_turnovers': 'turnovers',
-            'home_yards_from_penalties':'yards_from_penalties', 'home_yards_lost_from_sacks': 'yards_lost_from_sacks'})
-                
-        away_team_df = pd.merge(away_team_df, away_stats_df,left_index = True, right_index = True)
-        home_team_df = pd.merge(home_team_df, home_stats_df,left_index = True, right_index = True)
-        try:
-            away_team_df['time_of_possession'] = (int(away_team_df['time_of_possession'].loc[0][0:2]) * 60) + int(away_team_df['time_of_possession'].loc[0][3:5])
-            home_team_df['time_of_possession'] = (int(home_team_df['time_of_possession'].loc[0][0:2]) * 60) + int(home_team_df['time_of_possession'].loc[0][3:5])
-        except TypeError:
-            away_team_df['time_of_possession'] = np.nan
-            home_team_df['time_of_possession'] = np.nan
-    except TypeError:
-        away_team_df = pd.DataFrame()
-        home_team_df = pd.DataFrame()
+    Args:
+        game_SUM_DF (_type_): Single game summary DataFrame
+        game_BOX (_type_): A Boxscore data frame
+
+    Returns:
+        away_STATS_DF, home_STATS_DF (pandas.DataFrame, pandas.DataFrame): A cleaned DataFrame of all stats for each team provided in the two arguments.                            where each row corresponds to a single game.
+    """
+    try:
+        # Create away DataFrame out of only away team stats and remove 'away_' prefix from columns
+        away_SUM_DF = game_SUM_DF.filter(regex="^away_")
+        away_SUM_DF.columns = away_SUM_DF.columns.str.removeprefix("away_")
+
+        # Create home DataFrame out of only home team stats and remove 'home_' prefix from columns
+        home_SUM_DF = game_SUM_DF.filter(regex="^home_")
+        home_SUM_DF.columns = home_SUM_DF.columns.str.removeprefix("home_")
+
+        # If away team won, set won/lost fields
+        if game_SUM_DF.loc[0,'away_score'] > game_SUM_DF.loc[0,'home_score']:
+            away_SUM_DF = pd.merge(away_SUM_DF, pd.DataFrame({'game_won' : [1], 'game_lost' : [0]}),left_index = True, right_index = True)
+            home_SUM_DF = pd.merge(home_SUM_DF, pd.DataFrame({'game_won' : [0], 'game_lost' : [1]}),left_index = True, right_index = True)
+        
+        # If home team won, set won/lost fields
+        elif game_SUM_DF.loc[0,'away_score'] < game_SUM_DF.loc[0,'home_score']:
+            away_SUM_DF = pd.merge(away_SUM_DF, pd.DataFrame({'game_won' : [0], 'game_lost' : [1]}),left_index = True, right_index = True)
+            home_SUM_DF = pd.merge(home_SUM_DF, pd.DataFrame({'game_won' : [1], 'game_lost' : [0]}),left_index = True, right_index = True)
+        
+        # If tie, set won/lost fields
+        else: 
+            away_SUM_DF = pd.merge(away_SUM_DF, pd.DataFrame({'game_won' : [0], 'game_lost' : [0]}),left_index = True, right_index = True)
+            home_SUM_DF = pd.merge(home_SUM_DF, pd.DataFrame({'game_won' : [0], 'game_lost' : [0]}),left_index = True, right_index = True)  
+       
+        # Create away Boxscore DF out of only away team stats, reset index, and remove 'away_' prefix from columns
+        away_BOX_DF = game_BOX.dataframe.filter(regex="^away_")
+        away_BOX_DF = away_BOX_DF.reset_index().drop(columns = 'index')
+        away_BOX_DF.columns = away_BOX_DF.columns.str.removeprefix("away_")
+
+        # Create home Boxscore DF out of only home team stats, reset index, and remove 'home_' prefix from columns
+        home_BOX_DF = game_BOX.dataframe.filter(regex="^away_")
+        home_BOX_DF = home_BOX_DF.reset_index().drop(columns = 'index')
+        home_BOX_DF.columns = home_BOX_DF.columns.str.removeprefix("away_")
+
+        # Combine summary DataFrame and Boxscore DataFrame         
+        away_STATS_DF = pd.merge(away_SUM_DF, away_BOX_DF, left_index = True, right_index = True)
+        home_STATS_DF = pd.merge(home_SUM_DF, home_BOX_DF, left_index = True, right_index = True)
+
+        # Convert time of posession from MM:SS to seconds
+        away_STATS_DF['time_of_possession'] = (int(away_STATS_DF['time_of_possession'].loc[0][0:2]) * 60) + int(away_STATS_DF['time_of_possession'].loc[0][3:5])
+        home_STATS_DF['time_of_possession'] = (int(home_STATS_DF['time_of_possession'].loc[0][0:2]) * 60) + int(home_STATS_DF['time_of_possession'].loc[0][3:5])
+
+    # Handle various errors        
+    except (TypeError, KeyError, ValueError, AttributeError) as err:
+        print(err)
+        away_STATS_DF = pd.DataFrame()
+        home_STATS_DF = pd.DataFrame()
     
-    return away_team_df, home_team_df
+    return away_STATS_DF, home_STATS_DF
 
 def main():
     # Tests for sportsipy_submodule_summary function
