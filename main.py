@@ -13,6 +13,8 @@ Coding Standard
         
         _SUM                    Brief summary of a set of games or a single game
                                 EX. Boxscores.games or Boxscores.games[W-YYYY][Game #]
+
+        _STATS                  A collection of stats that isnt directly a _BOX or a _SUM.
         
         _DF                     Any object/variable coverted to a pandas.DataFrame           
 """
@@ -20,7 +22,7 @@ Coding Standard
 def sportsipy_submodule_summary():
     """
     Instantiate and print some of the various Data Types within the sportsipy submodule.
-    This function is only used for debugging and helping developers understand the each module.
+    This function is only used for debugging and helping developers understand each module.
 
     Args:
         None
@@ -29,38 +31,38 @@ def sportsipy_submodule_summary():
         None
     """
 
-    # Create Boxscores Object for the 2023 season weeks 1 - 8
-    week1thru8_BOX = Boxscores(1, 2023, 8)
-    print("Boxscore Class: ")
-    print(week1thru8_BOX)
+    # Create Boxscores Object for the 2022 season weeks x - y. Week 13 of 2022 has a Tie so its a good query.
+    weekXthruY_BOX = Boxscores(13, 2022, 13)
+    print("Boxscores Class: ")
+    print(weekXthruY_BOX)
 
     # Print dictionary of all games played within the Boxscores' scope (Weeks 1 - 8)
     # Format {Week: [{Array of dictionaries that contain game info}]}
-    week1thru8_SUM = week1thru8_BOX.games
-    print("\nBoxscore.games: ")
-    print(week1thru8_SUM)
+    weekXthruY_SUM = weekXthruY_BOX.games
+    print("\nBoxscores.games: ")
+    print(weekXthruY_SUM)
 
     # Print brief summary of a single game within Boxscore's scope.
     # This is the short version of a Boxscore Object
-    week1_game1_SUM = week1thru8_BOX.games['1-2023'][0]
-    week1_game1_SUM_DF = pd.DataFrame.from_dict([week1_game1_SUM])
-    print("\nGame 1 Summary: ")
-    print(week1_game1_SUM_DF.to_string())
+    weekX_gameY_SUM = weekXthruY_BOX.games['13-2022'][6]
+    weekX_gameY_SUM_DF = pd.DataFrame.from_dict([weekX_gameY_SUM])
+    print("\nGame Summary: ")
+    print(weekX_gameY_SUM_DF.to_string())
 
     # Get week 1, game 1's URI
-    week1_game1_URI = week1thru8_BOX.games['1-2023'][0]['boxscore']
+    weekX_gameY_URI = weekXthruY_BOX.games['13-2022'][6]['boxscore']
     print("\nGame 1 URI: ")
-    print(week1_game1_URI)
+    print(weekX_gameY_URI)
 
     # Create Detailed Boxscore object using URI
-    week1_game1_BOX = Boxscore(week1_game1_URI)
-    print("\nBoxscore Week 1 Game 1: ")
-    print(week1_game1_BOX)
+    weekX_gameY_BOX = Boxscore(weekX_gameY_URI)
+    print("\nBoxscore: ")
+    print(weekX_gameY_BOX)
 
-    # Create dataframe out of week 1, game 1's boxscore
-    week1_game1_BOX_DF = week1_game1_BOX.dataframe
-    print("\nBoxscore Week 1 Game 1 DataFrame: ")
-    print(week1_game1_BOX_DF.to_string())
+    # Create dataframe out of week X, game Y's boxscore
+    weekX_gameY_BOX_DF = weekX_gameY_BOX.dataframe
+    print("\nBoxscore Week X Game Y DataFrame: ")
+    print(weekX_gameY_BOX_DF.to_string())
 
 def get_schedule(year, firstweek, lastweek):
     """
@@ -72,7 +74,7 @@ def get_schedule(year, firstweek, lastweek):
         lastweek (int): Ending week of schedule query (inclusive)
 
     Returns:
-        pandas.DataFrame: A DataFrame of all games played within the scope of the query, 
+        schedule_SUM_DF (pandas.DataFrame): A DataFrame of all games played within the scope of the query, 
                             where each row corresponds to a single game.
     """
 
@@ -80,7 +82,7 @@ def get_schedule(year, firstweek, lastweek):
     weeks_list = list(range(firstweek, lastweek + 1))
 
     # Instantiate schedule dataframe
-    schedule_DF = pd.DataFrame()
+    schedule_SUM_DF = pd.DataFrame()
 
     # For each week of the season
     # for w in range(len(weeks_list)):
@@ -93,23 +95,23 @@ def get_schedule(year, firstweek, lastweek):
         week_w_BOX = Boxscores(w, year)
 
         # Instantiate dataframe for current week w
-        week_games_DF = pd.DataFrame()
+        week_games_SUM_DF = pd.DataFrame()
 
         # For each game data dictionary
         for g in range(len(week_w_BOX.games[date_str])):
             # Create dataframe out of select game statistic keys
-            game_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr'])
+            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr'])
 
             # Add week # to each index
-            game_DF['week'] = w
+            game_SUM_DF['week'] = w
 
             # Concat current game to list of this weeks game
-            week_games_DF = pd.concat([week_games_DF, game_DF])
+            week_games_SUM_DF = pd.concat([week_games_SUM_DF, game_SUM_DF])
 
         # Concat current game to season long dataframe
-        schedule_DF = pd.concat([schedule_DF, week_games_DF]).reset_index().drop(columns='index')
+        schedule_SUM_DF = pd.concat([schedule_SUM_DF, week_games_SUM_DF]).reset_index().drop(columns='index')
 
-    return schedule_DF
+    return schedule_SUM_DF
 
 def game_data(game_df, game_stats):
     try:
@@ -185,46 +187,29 @@ def main():
     if(False):
         sportsipy_submodule_summary()
 
-    # Tests for get_schedule function
+    # Tests for get_schedule function. Week 13 of 2022 has a Tie so its a good query.
     if(False):
-        display(get_schedule(2023, 1, 3))
-        print(get_schedule(2023, 1, 1).to_string())
+        display(get_schedule(2022, 13, 13))
 
     # Tests for game_data function
     if(True):
-        # Create Boxscores Object for the 2023 season weeks 1 - 1
-        week1thru1_BOX = Boxscores(1, 2023, 1)
-        print("Boxscore Class: ")
-        print(week1thru1_BOX)
+        # Create Boxscores Object for the 2022 season weeks 13 - 13
+        weekXthruY_BOX = Boxscores(13, 2022, 13)
 
-        # Get week 1, game 1's URI
-        week1_game1_URI = week1thru1_BOX.games['1-2023'][0]['boxscore']
-        print("\nGame 1 URI: ")
-        print(week1_game1_URI)
+        # Get week 13, game 6's URI
+        weekX_gameY_URI = weekXthruY_BOX.games['13-2022'][6]['boxscore']
 
         # Create Detailed Boxscore object using URI
-        week1_game1_BOX = Boxscore(week1_game1_URI)
-        print("\nBoxscore Week 1 Game 1: ")
-        print(week1_game1_BOX)
-
-        # Print dictionary of all games played within the Boxscores' scope (Weeks 1 - 8)
-        # Format {Week: [{Array of dictionaries that contain game info}]}
-        week1thru8_SUM = week1thru1_BOX.games
-        print("\nBoxscore.games: ")
-        print(week1thru8_SUM)
+        weekX_gameY_BOX = Boxscore(weekX_gameY_URI)
 
         # Print brief summary of a single game within Boxscore's scope.
         # This is the short version of a Boxscore Object
-        week1_game1_SUM = week1thru1_BOX.games['1-2023'][0]
-        week1_game1_SUM_DF = pd.DataFrame.from_dict([week1_game1_SUM])
-        print("\nGame 1 Summary: ")
-        print(week1_game1_SUM_DF.to_string())
+        weekX_gameY_SUM = weekXthruY_BOX.games['13-2022'][6]
+        weekX_gameY_SUM_DF = pd.DataFrame.from_dict([weekX_gameY_SUM])
 
-        away_df, home_df = game_data(week1_game1_SUM_DF, week1_game1_BOX)
-        print("\nAway and Home DataFrames: ")
-        print(away_df.to_string())
-        print(home_df.to_string())
-
+        away_STATS_DF, home_STATS_DF = clean_game_data(weekX_gameY_SUM_DF, weekX_gameY_BOX)
+        display(away_STATS_DF)
+        display(home_STATS_DF)
 
 if __name__ == "__main__":
     try:
