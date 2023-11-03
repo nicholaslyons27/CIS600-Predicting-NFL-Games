@@ -5,6 +5,8 @@ from sportsipy.nfl.boxscore import Boxscore  # Detailed information about the fi
 import pandas as pd
 import sys
 
+import urllib3
+
 """
 Coding Standard
     Suffix Summary:
@@ -88,7 +90,7 @@ def get_schedule(year, firstweek, lastweek):
     # for w in range(len(weeks_list)):
     for w in weeks_list:
 
-        # Create key in the string format "Week-Year"
+        # Create key in the string format "W-YYYY"
         date_str = str(w) + '-' + str(year)
 
         # Create Boxscores Object for current week w     
@@ -113,7 +115,7 @@ def get_schedule(year, firstweek, lastweek):
 
     return schedule_SUM_DF
 
-def clean_game_data(game_SUM_DF, game_BOX):
+def get_clean_game_data(game_SUM_DF, game_BOX):
     """
         Clean data from a single game and return two pandas.DataFrames that has the cleaned data in a more usable form.
         'away_' and 'home_' prefixes are removed, time of possession is converted into seconds, game result is converted from a string of team_abbr to a 1 or 0. 
@@ -123,7 +125,8 @@ def clean_game_data(game_SUM_DF, game_BOX):
         game_BOX (_type_): A Boxscore data frame
 
     Returns:
-        away_STATS_DF, home_STATS_DF (pandas.DataFrame, pandas.DataFrame): A cleaned DataFrame of all stats for each team provided in the two arguments.                            where each row corresponds to a single game.
+        away_STATS_DF, home_STATS_DF (pandas.DataFrame, pandas.DataFrame): A cleaned DataFrame of all stats for each team provided in the two arguments. 
+                                                                             Each Return corresponds to that teams stats in that singular game.
     """
     try:
         # Create away DataFrame out of only away team stats and remove 'away_' prefix from columns
@@ -155,9 +158,9 @@ def clean_game_data(game_SUM_DF, game_BOX):
         away_BOX_DF.columns = away_BOX_DF.columns.str.removeprefix("away_")
 
         # Create home Boxscore DF out of only home team stats, reset index, and remove 'home_' prefix from columns
-        home_BOX_DF = game_BOX.dataframe.filter(regex="^away_")
+        home_BOX_DF = game_BOX.dataframe.filter(regex="^home_")
         home_BOX_DF = home_BOX_DF.reset_index().drop(columns = 'index')
-        home_BOX_DF.columns = home_BOX_DF.columns.str.removeprefix("away_")
+        home_BOX_DF.columns = home_BOX_DF.columns.str.removeprefix("home_")
 
         # Combine summary DataFrame and Boxscore DataFrame         
         away_STATS_DF = pd.merge(away_SUM_DF, away_BOX_DF, left_index = True, right_index = True)
@@ -175,6 +178,59 @@ def clean_game_data(game_SUM_DF, game_BOX):
     
     return away_STATS_DF, home_STATS_DF
 
+def get_game_data_for_weeks(weeks, year):
+    """
+        Get a DataFrame of cleaned data of a single teams's stats in a single game. The DataFrame will contain info for all teams that played a game in the scope of the arguments. 
+        This method repeatedly calls and aggregates data from get_clean_game_data() which returns clean game data for a single game. 
+
+    Args:
+        weeks (List of Ints): Weeks of clean game data query
+        year (_type_): Year of clean game data query
+
+    Returns:
+        weeks_games_STATS_DF (pandas.DataFrame): A DataFrame that contains cleaned data for all games played within the scope of the query, 
+                            where each row corresponds to a single teams stats in that game.
+    """
+    
+    weeks_games_STATS_DF = pd.DataFrame()
+    
+    for w in range(len(weeks)):
+        
+        # Create key in the string format "W-YYYY"
+        date_str = str(weeks[w]) + '-' + str(year)
+
+        # Create Boxscores Object for current week w
+        week_w_BOX = Boxscores(weeks[w], year)
+
+        # Instantiate dataframe for current week w
+        week_games_SUM_DF = pd.DataFrame()
+        
+        # For each game data dictionary
+        for g in range(len(week_w_BOX.games[date_str])):
+
+            # Extract game URI and create Boxscore object
+            game_URI = week_w_BOX.games[date_str][g]['boxscore']
+            game_BOX = Boxscore(game_URI)
+
+            # Create datafame out of select game statistics
+            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index = [0])
+
+            # Clean data for each game summary and boxscore
+            away_team_df, home_team_df = get_clean_game_data(game_SUM_DF, game_BOX)
+
+            # Add week # to each index
+            away_team_df['week'] = weeks[w]
+            home_team_df['week'] = weeks[w]
+    
+            # Concat current game to list of this week's games
+            week_games_SUM_DF = pd.concat([week_games_SUM_DF, away_team_df])
+            week_games_SUM_DF = pd.concat([week_games_SUM_DF, home_team_df])
+        
+        # Concat this week's games to overall dataframe
+        weeks_games_STATS_DF = pd.concat([weeks_games_STATS_DF, week_games_SUM_DF])
+                        
+    return weeks_games_STATS_DF
+    
 def main():
     # Tests for sportsipy_submodule_summary function
     if(False):
@@ -184,8 +240,8 @@ def main():
     if(False):
         display(get_schedule(2022, 13, 13))
 
-    # Tests for game_data function
-    if(True):
+    # Tests for clean_game_data function
+    if(False):
         # Create Boxscores Object for the 2022 season weeks 13 - 13
         weekXthruY_BOX = Boxscores(13, 2022, 13)
 
@@ -200,10 +256,13 @@ def main():
         weekX_gameY_SUM = weekXthruY_BOX.games['13-2022'][6]
         weekX_gameY_SUM_DF = pd.DataFrame.from_dict([weekX_gameY_SUM])
 
-        away_STATS_DF, home_STATS_DF = clean_game_data(weekX_gameY_SUM_DF, weekX_gameY_BOX)
+        away_STATS_DF, home_STATS_DF = get_clean_game_data(weekX_gameY_SUM_DF, weekX_gameY_BOX)
         display(away_STATS_DF)
         display(home_STATS_DF)
 
+    if(True):   
+        display(get_game_data_for_weeks([1,2], 2022))
+    
 if __name__ == "__main__":
     try:
         main()
