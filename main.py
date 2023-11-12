@@ -276,6 +276,73 @@ def get_game_data_for_weeks(weeks, year):
                         
     return weeks_games_STATS_DF
     
+
+def agg_weekly_data(schedule_df,weeks_games_df,current_week,weeks):
+    schedule_df = schedule_df[schedule_df.week < current_week]
+    agg_games_df = pd.DataFrame()
+    for w in range(1,len(weeks)):
+        games_df = schedule_df[schedule_df.week == weeks[w]]
+        agg_weekly_df = weeks_games_df[weeks_games_df.week < weeks[w]].drop(columns = ['score','week','game_won', 'game_lost']).groupby(by=["team_name", "team_abbr"]).mean().reset_index()
+        win_loss_df = weeks_games_df[weeks_games_df.week < weeks[w]][["team_name", "team_abbr",'game_won', 'game_lost']].groupby(by=["team_name", "team_abbr"]).sum().reset_index()
+        win_loss_df['win_perc'] = win_loss_df['game_won'] / (win_loss_df['game_won'] + win_loss_df['game_lost'])
+        win_loss_df = win_loss_df.drop(columns = ['game_won', 'game_lost'])
+        
+        try:
+            agg_weekly_df['fourth_down_perc'] = agg_weekly_df['fourth_down_conversions'] / agg_weekly_df['fourth_down_attempts']
+        except ZeroDivisionError:
+            agg_weekly_df['fourth_down_perc'] = 0
+            agg_weekly_df['fourth_down_perc'] = agg_weekly_df['fourth_down_perc'].fillna(0)
+        
+        try:
+            agg_weekly_df['third_down_perc'] = agg_weekly_df['third_down_conversions'] / agg_weekly_df['third_down_attempts']
+        except ZeroDivisionError:
+            agg_weekly_df['third_down_perc'] = 0
+        
+        agg_weekly_df['third_down_perc'] = agg_weekly_df['third_down_perc'].fillna(0)
+        agg_weekly_df = agg_weekly_df.drop(columns = ['fourth_down_attempts', 'fourth_down_conversions', 'third_down_attempts', 'third_down_conversions'])
+        agg_weekly_df = pd.merge(win_loss_df,agg_weekly_df,left_on = ['team_name', 'team_abbr'], right_on = ['team_name', 'team_abbr'])
+        away_df = pd.merge(games_df,agg_weekly_df,how = 'inner', left_on = ['away_name', 'away_abbr'], right_on = ['team_name', 'team_abbr']).drop(columns = ['team_name', 'team_abbr']).rename(columns = {'win_perc': 'away_win_perc','first_downs': 'away_first_downs', 'fumbles': 'away_fumbles', 'fumbles_lost':'away_fumbles_lost', 'interceptions':'away_interceptions','net_pass_yards': 'away_net_pass_yards', 'pass_attempts':'away_pass_attempts', 'pass_completions':'away_pass_completions', 'pass_touchdowns':'away_pass_touchdowns', 'pass_yards':'away_pass_yards', 'penalties':'away_penalties', 'points':'away_points', 'rush_attempts':'away_rush_attempts', 'rush_touchdowns':'away_rush_touchdowns', 'rush_yards':'away_rush_yards', 'time_of_possession':'away_time_of_possession', 'times_sacked':'away_times_sacked', 'total_yards':'away_total_yards', 'turnovers':'away_turnovers', 'yards_from_penalties':'away_yards_from_penalties', 'yards_lost_from_sacks': 'away_yards_lost_from_sacks', 'fourth_down_perc': 'away_fourth_down_perc', 'third_down_perc':'away_third_down_perc'})         
+        home_df = pd.merge(games_df,agg_weekly_df,how = 'inner', left_on = ['home_name', 'home_abbr'], right_on = ['team_name', 'team_abbr']).drop(columns = ['team_name', 'team_abbr']).rename(columns = {'win_perc': 'home_win_perc', 'first_downs': 'home_first_downs', 'fumbles': 'home_fumbles', 'fumbles_lost':'home_fumbles_lost', 'interceptions':'home_interceptions', 'net_pass_yards': 'home_net_pass_yards', 'pass_attempts':'home_pass_attempts', 'pass_completions':'home_pass_completions', 'pass_touchdowns':'home_pass_touchdowns', 'pass_yards':'home_pass_yards', 'penalties':'home_penalties', 'points':'home_points', 'rush_attempts':'home_rush_attempts', 'rush_touchdowns':'home_rush_touchdowns', 'rush_yards':'home_rush_yards', 'time_of_possession':'home_time_of_possession', 'times_sacked':'home_times_sacked', 'total_yards':'home_total_yards', 'turnovers':'home_turnovers', 'yards_from_penalties':'home_yards_from_penalties', 'yards_lost_from_sacks': 'home_yards_lost_from_sacks', 'fourth_down_perc':'home_fourth_down_perc', 'third_down_perc':'home_third_down_perc'})         
+        agg_weekly_df = pd.merge(away_df,home_df,left_on = ['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr', 'week'], right_on = ['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr', 'week'])         
+        agg_weekly_df['win_perc_dif'] = agg_weekly_df['away_win_perc'] - agg_weekly_df['home_win_perc']         
+        agg_weekly_df['first_downs_dif'] = agg_weekly_df['away_first_downs'] - agg_weekly_df['home_first_downs']         
+        agg_weekly_df['fumbles_dif'] = agg_weekly_df['away_fumbles'] - agg_weekly_df['home_fumbles']         
+        agg_weekly_df['interceptions_dif'] = agg_weekly_df['away_interceptions'] - agg_weekly_df['home_interceptions']         
+        agg_weekly_df['net_pass_yards_dif'] = agg_weekly_df['away_net_pass_yards'] - agg_weekly_df['home_net_pass_yards']         
+        agg_weekly_df['pass_attempts_dif'] = agg_weekly_df['away_pass_attempts'] - agg_weekly_df['home_pass_attempts']         
+        agg_weekly_df['pass_completions_dif'] = agg_weekly_df['away_pass_completions'] - agg_weekly_df['home_pass_completions']         
+        agg_weekly_df['pass_touchdowns_dif'] = agg_weekly_df['away_pass_touchdowns'] - agg_weekly_df['home_pass_touchdowns']         
+        agg_weekly_df['pass_yards_dif'] = agg_weekly_df['away_pass_yards'] - agg_weekly_df['home_pass_yards']         
+        agg_weekly_df['penalties_dif'] = agg_weekly_df['away_penalties'] - agg_weekly_df['home_penalties']        
+        agg_weekly_df['points_dif'] = agg_weekly_df['away_points'] - agg_weekly_df['home_points']         
+        agg_weekly_df['rush_attempts_dif'] = agg_weekly_df['away_rush_attempts'] - agg_weekly_df['home_rush_attempts']
+        agg_weekly_df['rush_touchdowns_dif'] = agg_weekly_df['away_rush_touchdowns'] - agg_weekly_df['home_rush_touchdowns']
+        agg_weekly_df['rush_yards_dif'] = agg_weekly_df['away_rush_yards'] - agg_weekly_df['home_rush_yards']
+        agg_weekly_df['time_of_possession_dif'] = agg_weekly_df['away_time_of_possession'] - agg_weekly_df['home_time_of_possession']
+        agg_weekly_df['times_sacked_dif'] = agg_weekly_df['away_times_sacked'] - agg_weekly_df['home_times_sacked']
+        agg_weekly_df['total_yards_dif'] = agg_weekly_df['away_total_yards'] - agg_weekly_df['home_total_yards']
+        agg_weekly_df['turnovers_dif'] = agg_weekly_df['away_turnovers'] - agg_weekly_df['home_turnovers'] 
+        agg_weekly_df['yards_from_penalties_dif'] = agg_weekly_df['away_yards_from_penalties'] - agg_weekly_df['home_yards_from_penalties']
+        agg_weekly_df['yards_lost_from_sacks_dif'] = agg_weekly_df['away_yards_lost_from_sacks'] - agg_weekly_df['home_yards_lost_from_sacks']
+        agg_weekly_df['fourth_down_perc_dif'] = agg_weekly_df['away_fourth_down_perc'] - agg_weekly_df['home_fourth_down_perc']
+        agg_weekly_df['third_down_perc_dif'] = agg_weekly_df['away_third_down_perc'] - agg_weekly_df['home_third_down_perc']
+        agg_weekly_df = agg_weekly_df.drop(columns = ['away_win_perc', 'away_first_downs', 'away_fumbles', 'away_fumbles_lost', 'away_interceptions','away_net_pass_yards', 'away_pass_attempts','away_pass_completions', 'away_pass_touchdowns', 'away_pass_yards', 'away_penalties', 'away_points', 'away_rush_attempts', 'away_rush_touchdowns', 'away_rush_yards', 'away_time_of_possession', 'away_times_sacked', 'away_total_yards', 'away_turnovers', 'away_yards_from_penalties', 'away_yards_lost_from_sacks','away_fourth_down_perc', 'away_third_down_perc','home_win_perc', 'home_first_downs', 'home_fumbles', 'home_fumbles_lost', 'home_interceptions', 'home_net_pass_yards', 'home_pass_attempts','home_pass_completions', 'home_pass_touchdowns', 'home_pass_yards', 'home_penalties', 'home_points', 'home_rush_attempts', 'home_rush_touchdowns', 'home_rush_yards', 'home_time_of_possession', 'home_times_sacked', 'home_total_yards', 'home_turnovers', 'home_yards_from_penalties', 'home_yards_lost_from_sacks','home_fourth_down_perc', 'home_third_down_perc'])
+        if (agg_weekly_df['winning_name'].isnull().values.any() and weeks[w]> 3):
+            agg_weekly_df['result'] = np.nan
+            print(f"Week {weeks[w]} games have not finished yet.")        
+        else:
+            agg_weekly_df['result'] = agg_weekly_df['winning_name'] == agg_weekly_df['away_name']
+            agg_weekly_df['result'] = agg_weekly_df['result'].astype('float')
+            agg_weekly_df = agg_weekly_df.drop(columns = ['winning_name', 'winning_abbr']) 
+            agg_games_df = pd.concat([agg_games_df, agg_weekly_df])
+            agg_games_df = agg_games_df.reset_index().drop(columns = 'index')
+    
+    agg_games_df = agg_games_df.drop(index = 20, axis=0)
+            
+    return agg_games_df
+    
+
+
 def main():
     # Tests for offline storage function
     if(False):
@@ -319,10 +386,20 @@ def main():
         print(away_STATS_DF.to_string())
         print(home_STATS_DF.to_string())
 
-    if(False):   
-       print(get_game_data_for_weeks([1], 2023).to_string())  
+    # Tests for get_game_data_for_weeks
+    if(True):   
+        print(get_game_data_for_weeks([1,2], 2022).to_string())
 
-           
+    # Tests for agg_weekly_data
+    if(False):
+        #agg_weekly_data(schedule_df,weeks_games_df,current_week,weeks):
+        schedule_df = get_schedule(2023, 1, 18)
+        weeks_games_df = get_game_data_for_weeks([1, 2, 3], 2023)
+        current_week = 4
+        weeks = list(range(1,current_week + 1))
+        get_game_data_for_weeks(schedule_df, weeks_games_df, current_week, weeks)
+        print(get_game_data_for_weeks)
+    
 if __name__ == "__main__":
     try:
         main()
