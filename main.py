@@ -4,8 +4,9 @@ from sportsipy.nfl.boxscore import Boxscores  # Retrieve a dictionary which cont
 from sportsipy.nfl.boxscore import Boxscore  # Detailed information about the final statistics for a game.
 import pandas as pd
 import sys
+import pickle
 
-import urllib3
+OFFLINE_MODE = True
 
 """
 Coding Standard
@@ -21,6 +22,37 @@ Coding Standard
         _DF                     Any object/variable coverted to a pandas.DataFrame           
 """
 
+def store_data(year, firstweek, lastweek):
+    """Pickle's a Boxscore object for each week in the query. Stores a CSV of a Boxscore.dataframe for each game within the query.
+
+    Args:
+        year (int): Year of schedule query
+        firstweek (int): Starting week of schedule query (inclusive)
+        lastweek (int): Ending week of schedule query (inclusive)
+    """
+    weeks_list = list(range(firstweek, lastweek + 1))
+
+    for w in weeks_list:
+        # Create key in the string format "W-YYYY"
+        date_str = str(w) + '-' + str(year)
+
+        # Create and store Boxscores Object for current week w
+        week_w_BOX = Boxscores(w, year)
+        print(week_w_BOX)
+        print(w)
+        with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'wb') as file: 
+            pickle.dump(week_w_BOX, file) 
+        
+        # For each game data dictionary
+        for g in range(len(week_w_BOX.games[date_str])):
+
+            # Extract game URI, create Boxscore object, store its dataframe
+            game_URI = week_w_BOX.games[date_str][g]['boxscore']
+            game_BOX_DF = Boxscore(game_URI).dataframe
+            print(g)
+            print(game_URI)
+            game_BOX_DF.to_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
+    
 def sportsipy_submodule_summary():
     """
     Instantiate and print some of the various Data Types within the sportsipy submodule.
@@ -93,8 +125,13 @@ def get_schedule(year, firstweek, lastweek):
         # Create key in the string format "W-YYYY"
         date_str = str(w) + '-' + str(year)
 
-        # Create Boxscores Object for current week w     
-        week_w_BOX = Boxscores(w, year)
+        if(OFFLINE_MODE):
+            # Load and deserialize Boxscores(W, YYYY)
+            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+                week_w_BOX = pickle.load(file) 
+        else:
+            # Create Boxscores Object for current week w     
+            week_w_BOX = Boxscores(w, year)
 
         # Instantiate dataframe for current week w
         week_games_SUM_DF = pd.DataFrame()
@@ -115,14 +152,14 @@ def get_schedule(year, firstweek, lastweek):
 
     return schedule_SUM_DF
 
-def get_clean_game_data(game_SUM_DF, game_BOX):
+def get_clean_game_data(game_SUM_DF, game_BOX_DF):
     """
         Clean data from a single game and return two pandas.DataFrames that has the cleaned data in a more usable form.
         'away_' and 'home_' prefixes are removed, time of possession is converted into seconds, game result is converted from a string of team_abbr to a 1 or 0. 
 
     Args:
         game_SUM_DF (_type_): Single game summary DataFrame
-        game_BOX (_type_): A Boxscore data frame
+        game_BOX_DF (_type_): A Boxscore data frame
 
     Returns:
         away_STATS_DF, home_STATS_DF (pandas.DataFrame, pandas.DataFrame): A cleaned DataFrame of all stats for each team provided in the two arguments. 
@@ -153,12 +190,12 @@ def get_clean_game_data(game_SUM_DF, game_BOX):
             home_SUM_DF = pd.merge(home_SUM_DF, pd.DataFrame({'game_won' : [0], 'game_lost' : [0]}),left_index = True, right_index = True)  
        
         # Create away Boxscore DF out of only away team stats, reset index, and remove 'away_' prefix from columns
-        away_BOX_DF = game_BOX.dataframe.filter(regex="^away_")
+        away_BOX_DF = game_BOX_DF.filter(regex="^away_")
         away_BOX_DF = away_BOX_DF.reset_index().drop(columns = 'index')
         away_BOX_DF.columns = away_BOX_DF.columns.str.removeprefix("away_")
 
         # Create home Boxscore DF out of only home team stats, reset index, and remove 'home_' prefix from columns
-        home_BOX_DF = game_BOX.dataframe.filter(regex="^home_")
+        home_BOX_DF = game_BOX_DF.filter(regex="^home_")
         home_BOX_DF = home_BOX_DF.reset_index().drop(columns = 'index')
         home_BOX_DF.columns = home_BOX_DF.columns.str.removeprefix("home_")
 
@@ -194,13 +231,18 @@ def get_game_data_for_weeks(weeks, year):
     
     weeks_games_STATS_DF = pd.DataFrame()
     
-    for w in range(len(weeks)):
+    for w in weeks:
         
         # Create key in the string format "W-YYYY"
-        date_str = str(weeks[w]) + '-' + str(year)
+        date_str = str(w) + '-' + str(year)
 
-        # Create Boxscores Object for current week w
-        week_w_BOX = Boxscores(weeks[w], year)
+        if(OFFLINE_MODE):
+            # Load and deserialize Boxscores(W, YYYY)
+            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+                week_w_BOX = pickle.load(file) 
+        else:
+            # Create Boxscores Object for current week w     
+            week_w_BOX = Boxscores(w, year)
 
         # Instantiate dataframe for current week w
         week_games_SUM_DF = pd.DataFrame()
@@ -210,17 +252,20 @@ def get_game_data_for_weeks(weeks, year):
 
             # Extract game URI and create Boxscore object
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
-            game_BOX = Boxscore(game_URI)
+            if(OFFLINE_MODE):
+                game_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
+            else:
+                game_BOX_DF = Boxscore(game_URI).dataframe
 
             # Create datafame out of select game statistics
             game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index = [0])
 
             # Clean data for each game summary and boxscore
-            away_team_df, home_team_df = get_clean_game_data(game_SUM_DF, game_BOX)
+            away_team_df, home_team_df = get_clean_game_data(game_SUM_DF, game_BOX_DF)
 
             # Add week # to each index
-            away_team_df['week'] = weeks[w]
-            home_team_df['week'] = weeks[w]
+            away_team_df['week'] = w
+            home_team_df['week'] = w
     
             # Concat current game to list of this week's games
             week_games_SUM_DF = pd.concat([week_games_SUM_DF, away_team_df])
@@ -232,37 +277,52 @@ def get_game_data_for_weeks(weeks, year):
     return weeks_games_STATS_DF
     
 def main():
+    # Tests for offline storage function
+    if(False):
+        store_data(2023, 10, 10)
+
     # Tests for sportsipy_submodule_summary function
+    # No Offline Mode Implemented
     if(False):
         sportsipy_submodule_summary()
-
+        
     # Tests for get_schedule function. Week 13 of 2022 has a Tie so its a good query.
     if(False):
-        display(get_schedule(2022, 13, 13))
+        print(get_schedule(2023, 1, 1).to_string())
 
     # Tests for clean_game_data function
     if(False):
-        # Create Boxscores Object for the 2022 season weeks 13 - 13
-        weekXthruY_BOX = Boxscores(13, 2022, 13)
+        w = 1
+        year = 2023
+        game_num = 0
+        date_str = str(w) + '-' + str(year)
+        if(OFFLINE_MODE):
+            # Load and deserialize Boxscores(W, YYYY)
+            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+                weekXthruY_BOX = pickle.load(file)
+        else:
+            weekXthruY_BOX = Boxscores(1, year, w)
 
-        # Get week 13, game 6's URI
-        weekX_gameY_URI = weekXthruY_BOX.games['13-2022'][6]['boxscore']
-
-        # Create Detailed Boxscore object using URI
-        weekX_gameY_BOX = Boxscore(weekX_gameY_URI)
+        # Get game 0's URI and Boxscore
+        weekX_gameY_URI = weekXthruY_BOX.games[date_str][game_num]['boxscore']
+        if(OFFLINE_MODE):
+            weekX_gameY_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{weekX_gameY_URI}.csv')
+        else:
+            weekX_gameY_BOX_DF = Boxscore(weekX_gameY_URI).dataframe
 
         # Print brief summary of a single game within Boxscore's scope.
         # This is the short version of a Boxscore Object
-        weekX_gameY_SUM = weekXthruY_BOX.games['13-2022'][6]
+        weekX_gameY_SUM = weekXthruY_BOX.games[date_str][game_num]
         weekX_gameY_SUM_DF = pd.DataFrame.from_dict([weekX_gameY_SUM])
 
-        away_STATS_DF, home_STATS_DF = get_clean_game_data(weekX_gameY_SUM_DF, weekX_gameY_BOX)
-        display(away_STATS_DF)
-        display(home_STATS_DF)
+        away_STATS_DF, home_STATS_DF = get_clean_game_data(weekX_gameY_SUM_DF, weekX_gameY_BOX_DF)
+        print(away_STATS_DF.to_string())
+        print(home_STATS_DF.to_string())
 
-    if(True):   
-        display(get_game_data_for_weeks([1,2], 2022))
-    
+    if(False):   
+       print(get_game_data_for_weeks([1], 2023).to_string())  
+
+           
 if __name__ == "__main__":
     try:
         main()
