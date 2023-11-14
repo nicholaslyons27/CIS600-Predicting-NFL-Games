@@ -5,7 +5,6 @@ from sportsipy.nfl.boxscore import Boxscore  # Detailed information about the fi
 import pandas as pd
 import sys
 import pickle
-import os.path
 
 OFFLINE_MODE = True
 
@@ -24,7 +23,14 @@ Coding Standard
 """
 
 def store_data(year, firstweek, lastweek):
-    weeks_list = list(range(firstweek, lastweek))
+    """Pickle's a Boxscore object for each week in the query. Stores a CSV of a Boxscore.dataframe for each game within the query.
+
+    Args:
+        year (int): Year of schedule query
+        firstweek (int): Starting week of schedule query (inclusive)
+        lastweek (int): Ending week of schedule query (inclusive)
+    """
+    weeks_list = list(range(firstweek, lastweek + 1))
 
     for w in weeks_list:
         # Create key in the string format "W-YYYY"
@@ -34,7 +40,6 @@ def store_data(year, firstweek, lastweek):
         week_w_BOX = Boxscores(w, year)
         print(week_w_BOX)
         print(w)
-        print(y)
         with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'wb') as file: 
             pickle.dump(week_w_BOX, file) 
         
@@ -44,6 +49,8 @@ def store_data(year, firstweek, lastweek):
             # Extract game URI, create Boxscore object, store its dataframe
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
             game_BOX_DF = Boxscore(game_URI).dataframe
+            print(g)
+            print(game_URI)
             game_BOX_DF.to_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
     
 def sportsipy_submodule_summary():
@@ -270,12 +277,15 @@ def get_game_data_for_weeks(weeks, year):
     return weeks_games_STATS_DF
     
 def main():
-    #store_data(2023, 1, 9)
+    # Tests for offline storage function
+    if(False):
+        store_data(2023, 10, 10)
 
     # Tests for sportsipy_submodule_summary function
+    # No Offline Mode Implemented
     if(False):
         sportsipy_submodule_summary()
-
+        
     # Tests for get_schedule function. Week 13 of 2022 has a Tie so its a good query.
     if(False):
         print(get_schedule(2023, 1, 1).to_string())
@@ -310,10 +320,9 @@ def main():
         print(home_STATS_DF.to_string())
 
     if(False):   
-        print(get_game_data_for_weeks([1], 2023).to_string())
-   
+       print(get_game_data_for_weeks([1], 2023).to_string())  
 
-    
+           
 if __name__ == "__main__":
     try:
         main()

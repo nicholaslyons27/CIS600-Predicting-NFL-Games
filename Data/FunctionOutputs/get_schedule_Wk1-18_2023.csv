@@ -1,0 +1,273 @@
+,away_name,away_abbr,home_name,home_abbr,winning_name,winning_abbr,week
+0,Detroit Lions,det,Kansas City Chiefs,kan,Detroit Lions,det,1
+1,Carolina Panthers,car,Atlanta Falcons,atl,Atlanta Falcons,atl,1
+2,Cincinnati Bengals,cin,Cleveland Browns,cle,Cleveland Browns,cle,1
+3,Jacksonville Jaguars,jax,Indianapolis Colts,clt,Jacksonville Jaguars,jax,1
+4,Tampa Bay Buccaneers,tam,Minnesota Vikings,min,Tampa Bay Buccaneers,tam,1
+5,Tennessee Titans,oti,New Orleans Saints,nor,New Orleans Saints,nor,1
+6,San Francisco 49ers,sfo,Pittsburgh Steelers,pit,San Francisco 49ers,sfo,1
+7,Houston Texans,htx,Baltimore Ravens,rav,Baltimore Ravens,rav,1
+8,Arizona Cardinals,crd,Washington Commanders,was,Washington Commanders,was,1
+9,Green Bay Packers,gnb,Chicago Bears,chi,Green Bay Packers,gnb,1
+10,Las Vegas Raiders,rai,Denver Broncos,den,Las Vegas Raiders,rai,1
+11,Philadelphia Eagles,phi,New England Patriots,nwe,Philadelphia Eagles,phi,1
+12,Miami Dolphins,mia,Los Angeles Chargers,sdg,Miami Dolphins,mia,1
+13,Los Angeles Rams,ram,Seattle Seahawks,sea,Los Angeles Rams,ram,1
+14,Dallas Cowboys,dal,New York Giants,nyg,Dallas Cowboys,dal,1
+15,Buffalo Bills,buf,New York Jets,nyj,New York Jets,nyj,1
+16,Minnesota Vikings,min,Philadelphia Eagles,phi,Philadelphia Eagles,phi,2
+17,Green Bay Packers,gnb,Atlanta Falcons,atl,Atlanta Falcons,atl,2
+18,Las Vegas Raiders,rai,Buffalo Bills,buf,Buffalo Bills,buf,2
+19,Baltimore Ravens,rav,Cincinnati Bengals,cin,Baltimore Ravens,rav,2
+20,Seattle Seahawks,sea,Detroit Lions,det,Seattle Seahawks,sea,2
+21,Indianapolis Colts,clt,Houston Texans,htx,Indianapolis Colts,clt,2
+22,Kansas City Chiefs,kan,Jacksonville Jaguars,jax,Kansas City Chiefs,kan,2
+23,Los Angeles Chargers,sdg,Tennessee Titans,oti,Tennessee Titans,oti,2
+24,Chicago Bears,chi,Tampa Bay Buccaneers,tam,Tampa Bay Buccaneers,tam,2
+25,New York Giants,nyg,Arizona Cardinals,crd,New York Giants,nyg,2
+26,San Francisco 49ers,sfo,Los Angeles Rams,ram,San Francisco 49ers,sfo,2
+27,New York Jets,nyj,Dallas Cowboys,dal,Dallas Cowboys,dal,2
+28,Washington Commanders,was,Denver Broncos,den,Washington Commanders,was,2
+29,Miami Dolphins,mia,New England Patriots,nwe,Miami Dolphins,mia,2
+30,New Orleans Saints,nor,Carolina Panthers,car,New Orleans Saints,nor,2
+31,Cleveland Browns,cle,Pittsburgh Steelers,pit,Pittsburgh Steelers,pit,2
+32,New York Giants,nyg,San Francisco 49ers,sfo,San Francisco 49ers,sfo,3
+33,Tennessee Titans,oti,Cleveland Browns,cle,Cleveland Browns,cle,3
+34,Atlanta Falcons,atl,Detroit Lions,det,Detroit Lions,det,3
+35,New Orleans Saints,nor,Green Bay Packers,gnb,Green Bay Packers,gnb,3
+36,Houston Texans,htx,Jacksonville Jaguars,jax,Houston Texans,htx,3
+37,Denver Broncos,den,Miami Dolphins,mia,Miami Dolphins,mia,3
+38,Los Angeles Chargers,sdg,Minnesota Vikings,min,Los Angeles Chargers,sdg,3
+39,New England Patriots,nwe,New York Jets,nyj,New England Patriots,nwe,3
+40,Indianapolis Colts,clt,Baltimore Ravens,rav,Indianapolis Colts,clt,3
+41,Buffalo Bills,buf,Washington Commanders,was,Buffalo Bills,buf,3
+42,Carolina Panthers,car,Seattle Seahawks,sea,Seattle Seahawks,sea,3
+43,Dallas Cowboys,dal,Arizona Cardinals,crd,Arizona Cardinals,crd,3
+44,Chicago Bears,chi,Kansas City Chiefs,kan,Kansas City Chiefs,kan,3
+45,Pittsburgh Steelers,pit,Las Vegas Raiders,rai,Pittsburgh Steelers,pit,3
+46,Philadelphia Eagles,phi,Tampa Bay Buccaneers,tam,Philadelphia Eagles,phi,3
+47,Los Angeles Rams,ram,Cincinnati Bengals,cin,Cincinnati Bengals,cin,3
+48,Detroit Lions,det,Green Bay Packers,gnb,Detroit Lions,det,4
+49,Atlanta Falcons,atl,Jacksonville Jaguars,jax,Jacksonville Jaguars,jax,4
+50,Miami Dolphins,mia,Buffalo Bills,buf,Buffalo Bills,buf,4
+51,Minnesota Vikings,min,Carolina Panthers,car,Minnesota Vikings,min,4
+52,Denver Broncos,den,Chicago Bears,chi,Denver Broncos,den,4
+53,Baltimore Ravens,rav,Cleveland Browns,cle,Baltimore Ravens,rav,4
+54,Los Angeles Rams,ram,Indianapolis Colts,clt,Los Angeles Rams,ram,4
+55,Pittsburgh Steelers,pit,Houston Texans,htx,Houston Texans,htx,4
+56,Tampa Bay Buccaneers,tam,New Orleans Saints,nor,Tampa Bay Buccaneers,tam,4
+57,Cincinnati Bengals,cin,Tennessee Titans,oti,Tennessee Titans,oti,4
+58,Washington Commanders,was,Philadelphia Eagles,phi,Philadelphia Eagles,phi,4
+59,Las Vegas Raiders,rai,Los Angeles Chargers,sdg,Los Angeles Chargers,sdg,4
+60,New England Patriots,nwe,Dallas Cowboys,dal,Dallas Cowboys,dal,4
+61,Arizona Cardinals,crd,San Francisco 49ers,sfo,San Francisco 49ers,sfo,4
+62,Kansas City Chiefs,kan,New York Jets,nyj,Kansas City Chiefs,kan,4
+63,Seattle Seahawks,sea,New York Giants,nyg,Seattle Seahawks,sea,4
+64,Chicago Bears,chi,Washington Commanders,was,Chicago Bears,chi,5
+65,Jacksonville Jaguars,jax,Buffalo Bills,buf,Jacksonville Jaguars,jax,5
+66,Houston Texans,htx,Atlanta Falcons,atl,Atlanta Falcons,atl,5
+67,Tennessee Titans,oti,Indianapolis Colts,clt,Indianapolis Colts,clt,5
+68,Carolina Panthers,car,Detroit Lions,det,Detroit Lions,det,5
+69,New York Giants,nyg,Miami Dolphins,mia,Miami Dolphins,mia,5
+70,New Orleans Saints,nor,New England Patriots,nwe,New Orleans Saints,nor,5
+71,Baltimore Ravens,rav,Pittsburgh Steelers,pit,Pittsburgh Steelers,pit,5
+72,Cincinnati Bengals,cin,Arizona Cardinals,crd,Cincinnati Bengals,cin,5
+73,Philadelphia Eagles,phi,Los Angeles Rams,ram,Philadelphia Eagles,phi,5
+74,New York Jets,nyj,Denver Broncos,den,New York Jets,nyj,5
+75,Kansas City Chiefs,kan,Minnesota Vikings,min,Kansas City Chiefs,kan,5
+76,Dallas Cowboys,dal,San Francisco 49ers,sfo,San Francisco 49ers,sfo,5
+77,Green Bay Packers,gnb,Las Vegas Raiders,rai,Las Vegas Raiders,rai,5
+78,Denver Broncos,den,Kansas City Chiefs,kan,Kansas City Chiefs,kan,6
+79,Baltimore Ravens,rav,Tennessee Titans,oti,Baltimore Ravens,rav,6
+80,Washington Commanders,was,Atlanta Falcons,atl,Washington Commanders,was,6
+81,Minnesota Vikings,min,Chicago Bears,chi,Minnesota Vikings,min,6
+82,Seattle Seahawks,sea,Cincinnati Bengals,cin,Cincinnati Bengals,cin,6
+83,San Francisco 49ers,sfo,Cleveland Browns,cle,Cleveland Browns,cle,6
+84,New Orleans Saints,nor,Houston Texans,htx,Houston Texans,htx,6
+85,Indianapolis Colts,clt,Jacksonville Jaguars,jax,Jacksonville Jaguars,jax,6
+86,Carolina Panthers,car,Miami Dolphins,mia,Miami Dolphins,mia,6
+87,New England Patriots,nwe,Las Vegas Raiders,rai,Las Vegas Raiders,rai,6
+88,Philadelphia Eagles,phi,New York Jets,nyj,New York Jets,nyj,6
+89,Arizona Cardinals,crd,Los Angeles Rams,ram,Los Angeles Rams,ram,6
+90,Detroit Lions,det,Tampa Bay Buccaneers,tam,Detroit Lions,det,6
+91,New York Giants,nyg,Buffalo Bills,buf,Buffalo Bills,buf,6
+92,Dallas Cowboys,dal,Los Angeles Chargers,sdg,Dallas Cowboys,dal,6
+93,Jacksonville Jaguars,jax,New Orleans Saints,nor,Jacksonville Jaguars,jax,7
+94,Las Vegas Raiders,rai,Chicago Bears,chi,Chicago Bears,chi,7
+95,Cleveland Browns,cle,Indianapolis Colts,clt,Cleveland Browns,cle,7
+96,Buffalo Bills,buf,New England Patriots,nwe,New England Patriots,nwe,7
+97,Washington Commanders,was,New York Giants,nyg,New York Giants,nyg,7
+98,Detroit Lions,det,Baltimore Ravens,rav,Baltimore Ravens,rav,7
+99,Atlanta Falcons,atl,Tampa Bay Buccaneers,tam,Atlanta Falcons,atl,7
+100,Pittsburgh Steelers,pit,Los Angeles Rams,ram,Pittsburgh Steelers,pit,7
+101,Arizona Cardinals,crd,Seattle Seahawks,sea,Seattle Seahawks,sea,7
+102,Green Bay Packers,gnb,Denver Broncos,den,Denver Broncos,den,7
+103,Los Angeles Chargers,sdg,Kansas City Chiefs,kan,Kansas City Chiefs,kan,7
+104,Miami Dolphins,mia,Philadelphia Eagles,phi,Philadelphia Eagles,phi,7
+105,San Francisco 49ers,sfo,Minnesota Vikings,min,Minnesota Vikings,min,7
+106,Tampa Bay Buccaneers,tam,Buffalo Bills,buf,Buffalo Bills,buf,8
+107,Houston Texans,htx,Carolina Panthers,car,Carolina Panthers,car,8
+108,New Orleans Saints,nor,Indianapolis Colts,clt,New Orleans Saints,nor,8
+109,Los Angeles Rams,ram,Dallas Cowboys,dal,Dallas Cowboys,dal,8
+110,Minnesota Vikings,min,Green Bay Packers,gnb,Minnesota Vikings,min,8
+111,New England Patriots,nwe,Miami Dolphins,mia,Miami Dolphins,mia,8
+112,New York Jets,nyj,New York Giants,nyg,New York Jets,nyj,8
+113,Atlanta Falcons,atl,Tennessee Titans,oti,Tennessee Titans,oti,8
+114,Jacksonville Jaguars,jax,Pittsburgh Steelers,pit,Jacksonville Jaguars,jax,8
+115,Philadelphia Eagles,phi,Washington Commanders,was,Philadelphia Eagles,phi,8
+116,Cleveland Browns,cle,Seattle Seahawks,sea,Seattle Seahawks,sea,8
+117,Baltimore Ravens,rav,Arizona Cardinals,crd,Baltimore Ravens,rav,8
+118,Kansas City Chiefs,kan,Denver Broncos,den,Denver Broncos,den,8
+119,Cincinnati Bengals,cin,San Francisco 49ers,sfo,Cincinnati Bengals,cin,8
+120,Chicago Bears,chi,Los Angeles Chargers,sdg,Los Angeles Chargers,sdg,8
+121,Las Vegas Raiders,rai,Detroit Lions,det,Detroit Lions,det,8
+122,Tennessee Titans,oti,Pittsburgh Steelers,pit,Pittsburgh Steelers,pit,9
+123,Miami Dolphins,mia,Kansas City Chiefs,kan,Kansas City Chiefs,kan,9
+124,Minnesota Vikings,min,Atlanta Falcons,atl,Minnesota Vikings,min,9
+125,Arizona Cardinals,crd,Cleveland Browns,cle,Cleveland Browns,cle,9
+126,Los Angeles Rams,ram,Green Bay Packers,gnb,Green Bay Packers,gnb,9
+127,Tampa Bay Buccaneers,tam,Houston Texans,htx,Houston Texans,htx,9
+128,Chicago Bears,chi,New Orleans Saints,nor,New Orleans Saints,nor,9
+129,Washington Commanders,was,New England Patriots,nwe,Washington Commanders,was,9
+130,Seattle Seahawks,sea,Baltimore Ravens,rav,Baltimore Ravens,rav,9
+131,Indianapolis Colts,clt,Carolina Panthers,car,Indianapolis Colts,clt,9
+132,Dallas Cowboys,dal,Philadelphia Eagles,phi,Philadelphia Eagles,phi,9
+133,New York Giants,nyg,Las Vegas Raiders,rai,Las Vegas Raiders,rai,9
+134,Buffalo Bills,buf,Cincinnati Bengals,cin,Cincinnati Bengals,cin,9
+135,Los Angeles Chargers,sdg,New York Jets,nyj,Los Angeles Chargers,sdg,9
+136,Carolina Panthers,car,Chicago Bears,chi,Chicago Bears,chi,10
+137,Indianapolis Colts,clt,New England Patriots,nwe,Indianapolis Colts,clt,10
+138,Houston Texans,htx,Cincinnati Bengals,cin,Houston Texans,htx,10
+139,San Francisco 49ers,sfo,Jacksonville Jaguars,jax,San Francisco 49ers,sfo,10
+140,New Orleans Saints,nor,Minnesota Vikings,min,Minnesota Vikings,min,10
+141,Green Bay Packers,gnb,Pittsburgh Steelers,pit,Pittsburgh Steelers,pit,10
+142,Cleveland Browns,cle,Baltimore Ravens,rav,Cleveland Browns,cle,10
+143,Tennessee Titans,oti,Tampa Bay Buccaneers,tam,Tampa Bay Buccaneers,tam,10
+144,Atlanta Falcons,atl,Arizona Cardinals,crd,Arizona Cardinals,crd,10
+145,Detroit Lions,det,Los Angeles Chargers,sdg,Detroit Lions,det,10
+146,New York Giants,nyg,Dallas Cowboys,dal,Dallas Cowboys,dal,10
+147,Washington Commanders,was,Seattle Seahawks,sea,Seattle Seahawks,sea,10
+148,New York Jets,nyj,Las Vegas Raiders,rai,Las Vegas Raiders,rai,10
+149,Denver Broncos,den,Buffalo Bills,buf,Denver Broncos,den,10
+150,Cincinnati Bengals,cin,Baltimore Ravens,rav,,,11
+151,Dallas Cowboys,dal,Carolina Panthers,car,,,11
+152,Pittsburgh Steelers,pit,Cleveland Browns,cle,,,11
+153,Chicago Bears,chi,Detroit Lions,det,,,11
+154,Los Angeles Chargers,sdg,Green Bay Packers,gnb,,,11
+155,Arizona Cardinals,crd,Houston Texans,htx,,,11
+156,Tennessee Titans,oti,Jacksonville Jaguars,jax,,,11
+157,Las Vegas Raiders,rai,Miami Dolphins,mia,,,11
+158,New York Giants,nyg,Washington Commanders,was,,,11
+159,Tampa Bay Buccaneers,tam,San Francisco 49ers,sfo,,,11
+160,New York Jets,nyj,Buffalo Bills,buf,,,11
+161,Seattle Seahawks,sea,Los Angeles Rams,ram,,,11
+162,Minnesota Vikings,min,Denver Broncos,den,,,11
+163,Philadelphia Eagles,phi,Kansas City Chiefs,kan,,,11
+164,Green Bay Packers,gnb,Detroit Lions,det,,,12
+165,Washington Commanders,was,Dallas Cowboys,dal,,,12
+166,San Francisco 49ers,sfo,Seattle Seahawks,sea,,,12
+167,Miami Dolphins,mia,New York Jets,nyj,,,12
+168,New Orleans Saints,nor,Atlanta Falcons,atl,,,12
+169,Pittsburgh Steelers,pit,Cincinnati Bengals,cin,,,12
+170,Tampa Bay Buccaneers,tam,Indianapolis Colts,clt,,,12
+171,Jacksonville Jaguars,jax,Houston Texans,htx,,,12
+172,New England Patriots,nwe,New York Giants,nyg,,,12
+173,Carolina Panthers,car,Tennessee Titans,oti,,,12
+174,Los Angeles Rams,ram,Arizona Cardinals,crd,,,12
+175,Cleveland Browns,cle,Denver Broncos,den,,,12
+176,Buffalo Bills,buf,Philadelphia Eagles,phi,,,12
+177,Kansas City Chiefs,kan,Las Vegas Raiders,rai,,,12
+178,Baltimore Ravens,rav,Los Angeles Chargers,sdg,,,12
+179,Chicago Bears,chi,Minnesota Vikings,min,,,12
+180,Seattle Seahawks,sea,Dallas Cowboys,dal,,,13
+181,Detroit Lions,det,New Orleans Saints,nor,,,13
+182,Los Angeles Chargers,sdg,New England Patriots,nwe,,,13
+183,Atlanta Falcons,atl,New York Jets,nyj,,,13
+184,Indianapolis Colts,clt,Tennessee Titans,oti,,,13
+185,Arizona Cardinals,crd,Pittsburgh Steelers,pit,,,13
+186,Carolina Panthers,car,Tampa Bay Buccaneers,tam,,,13
+187,Miami Dolphins,mia,Washington Commanders,was,,,13
+188,Denver Broncos,den,Houston Texans,htx,,,13
+189,San Francisco 49ers,sfo,Philadelphia Eagles,phi,,,13
+190,Cleveland Browns,cle,Los Angeles Rams,ram,,,13
+191,Kansas City Chiefs,kan,Green Bay Packers,gnb,,,13
+192,Cincinnati Bengals,cin,Jacksonville Jaguars,jax,,,13
+193,New England Patriots,nwe,Pittsburgh Steelers,pit,,,14
+194,Tampa Bay Buccaneers,tam,Atlanta Falcons,atl,,,14
+195,Detroit Lions,det,Chicago Bears,chi,,,14
+196,Indianapolis Colts,clt,Cincinnati Bengals,cin,,,14
+197,Jacksonville Jaguars,jax,Cleveland Browns,cle,,,14
+198,Carolina Panthers,car,New Orleans Saints,nor,,,14
+199,Houston Texans,htx,New York Jets,nyj,,,14
+200,Los Angeles Rams,ram,Baltimore Ravens,rav,,,14
+201,Minnesota Vikings,min,Las Vegas Raiders,rai,,,14
+202,Seattle Seahawks,sea,San Francisco 49ers,sfo,,,14
+203,Buffalo Bills,buf,Kansas City Chiefs,kan,,,14
+204,Denver Broncos,den,Los Angeles Chargers,sdg,,,14
+205,Philadelphia Eagles,phi,Dallas Cowboys,dal,,,14
+206,Tennessee Titans,oti,Miami Dolphins,mia,,,14
+207,Green Bay Packers,gnb,New York Giants,nyg,,,14
+208,Los Angeles Chargers,sdg,Las Vegas Raiders,rai,,,15
+209,Atlanta Falcons,atl,Carolina Panthers,car,,,15
+210,Minnesota Vikings,min,Cincinnati Bengals,cin,,,15
+211,Chicago Bears,chi,Cleveland Browns,cle,,,15
+212,Pittsburgh Steelers,pit,Indianapolis Colts,clt,,,15
+213,Denver Broncos,den,Detroit Lions,det,,,15
+214,Tampa Bay Buccaneers,tam,Green Bay Packers,gnb,,,15
+215,New York Jets,nyj,Miami Dolphins,mia,,,15
+216,New York Giants,nyg,New Orleans Saints,nor,,,15
+217,Houston Texans,htx,Tennessee Titans,oti,,,15
+218,San Francisco 49ers,sfo,Arizona Cardinals,crd,,,15
+219,Washington Commanders,was,Los Angeles Rams,ram,,,15
+220,Dallas Cowboys,dal,Buffalo Bills,buf,,,15
+221,Philadelphia Eagles,phi,Seattle Seahawks,sea,,,15
+222,Baltimore Ravens,rav,Jacksonville Jaguars,jax,,,15
+223,Kansas City Chiefs,kan,New England Patriots,nwe,,,15
+224,New Orleans Saints,nor,Los Angeles Rams,ram,,,16
+225,Cincinnati Bengals,cin,Pittsburgh Steelers,pit,,,16
+226,Buffalo Bills,buf,Los Angeles Chargers,sdg,,,16
+227,Indianapolis Colts,clt,Atlanta Falcons,atl,,,16
+228,Green Bay Packers,gnb,Carolina Panthers,car,,,16
+229,Cleveland Browns,cle,Houston Texans,htx,,,16
+230,Detroit Lions,det,Minnesota Vikings,min,,,16
+231,Washington Commanders,was,New York Jets,nyj,,,16
+232,Seattle Seahawks,sea,Tennessee Titans,oti,,,16
+233,Jacksonville Jaguars,jax,Tampa Bay Buccaneers,tam,,,16
+234,Arizona Cardinals,crd,Chicago Bears,chi,,,16
+235,Dallas Cowboys,dal,Miami Dolphins,mia,,,16
+236,New England Patriots,nwe,Denver Broncos,den,,,16
+237,Las Vegas Raiders,rai,Kansas City Chiefs,kan,,,16
+238,New York Giants,nyg,Philadelphia Eagles,phi,,,16
+239,Baltimore Ravens,rav,San Francisco 49ers,sfo,,,16
+240,New York Jets,nyj,Cleveland Browns,cle,,,17
+241,Detroit Lions,det,Dallas Cowboys,dal,,,17
+242,New England Patriots,nwe,Buffalo Bills,buf,,,17
+243,Atlanta Falcons,atl,Chicago Bears,chi,,,17
+244,Las Vegas Raiders,rai,Indianapolis Colts,clt,,,17
+245,Tennessee Titans,oti,Houston Texans,htx,,,17
+246,Carolina Panthers,car,Jacksonville Jaguars,jax,,,17
+247,Los Angeles Rams,ram,New York Giants,nyg,,,17
+248,Arizona Cardinals,crd,Philadelphia Eagles,phi,,,17
+249,Miami Dolphins,mia,Baltimore Ravens,rav,,,17
+250,New Orleans Saints,nor,Tampa Bay Buccaneers,tam,,,17
+251,San Francisco 49ers,sfo,Washington Commanders,was,,,17
+252,Pittsburgh Steelers,pit,Seattle Seahawks,sea,,,17
+253,Los Angeles Chargers,sdg,Denver Broncos,den,,,17
+254,Cincinnati Bengals,cin,Kansas City Chiefs,kan,,,17
+255,Green Bay Packers,gnb,Minnesota Vikings,min,,,17
+256,Tampa Bay Buccaneers,tam,Carolina Panthers,car,,,18
+257,Cleveland Browns,cle,Cincinnati Bengals,cin,,,18
+258,Houston Texans,htx,Indianapolis Colts,clt,,,18
+259,Seattle Seahawks,sea,Arizona Cardinals,crd,,,18
+260,Minnesota Vikings,min,Detroit Lions,det,,,18
+261,Chicago Bears,chi,Green Bay Packers,gnb,,,18
+262,Buffalo Bills,buf,Miami Dolphins,mia,,,18
+263,Atlanta Falcons,atl,New Orleans Saints,nor,,,18
+264,New York Jets,nyj,New England Patriots,nwe,,,18
+265,Philadelphia Eagles,phi,New York Giants,nyg,,,18
+266,Jacksonville Jaguars,jax,Tennessee Titans,oti,,,18
+267,Denver Broncos,den,Las Vegas Raiders,rai,,,18
+268,Pittsburgh Steelers,pit,Baltimore Ravens,rav,,,18
+269,Kansas City Chiefs,kan,Los Angeles Chargers,sdg,,,18
+270,Los Angeles Rams,ram,San Francisco 49ers,sfo,,,18
+271,Dallas Cowboys,dal,Washington Commanders,was,,,18
