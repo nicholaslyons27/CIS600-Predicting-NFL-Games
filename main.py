@@ -3,6 +3,7 @@
 from sportsipy.nfl.boxscore import Boxscores  # Retrieve a dictionary which contains a major game data of all games being played on a particular day.
 from sportsipy.nfl.boxscore import Boxscore  # Detailed information about the final statistics for a game.
 import pandas as pd
+import numpy as np
 import sys
 import pickle
 
@@ -155,11 +156,11 @@ def get_schedule(year, firstweek, lastweek):
 def get_clean_game_data(game_SUM_DF, game_BOX_DF):
     """
         Clean data from a single game and return two pandas.DataFrames that has the cleaned data in a more usable form.
-        'away_' and 'home_' prefixes are removed, time of possession is converted into seconds, game result is converted from a string of team_abbr to a 1 or 0. 
+        'away_' and 'home_' prefixes are removed, time of possession is converted into seconds, game result is converted from a string of abbr to a 1 or 0. 
 
     Args:
-        game_SUM_DF (_type_): Single game summary DataFrame
-        game_BOX_DF (_type_): A Boxscore data frame
+        game_SUM_DF (pandas.Dataframe): Single game summary DataFrame
+        game_BOX_DF (pandas.Dataframe): A Boxscore data frame
 
     Returns:
         away_STATS_DF, home_STATS_DF (pandas.DataFrame, pandas.DataFrame): A cleaned DataFrame of all stats for each team provided in the two arguments. 
@@ -215,14 +216,14 @@ def get_clean_game_data(game_SUM_DF, game_BOX_DF):
     
     return away_STATS_DF, home_STATS_DF
 
-def get_game_data_for_weeks(weeks, year):
+def get_game_data_for_weeks(weeks_list, year):
     """
         Get a DataFrame of cleaned data of a single teams's stats in a single game. The DataFrame will contain info for all teams that played a game in the scope of the arguments. 
         This method repeatedly calls and aggregates data from get_clean_game_data() which returns clean game data for a single game. 
 
     Args:
-        weeks (List of Ints): Weeks of clean game data query
-        year (_type_): Year of clean game data query
+        weeks_list (List of ints): Weeks of clean game data query
+        year (int): Year of clean game data query
 
     Returns:
         weeks_games_STATS_DF (pandas.DataFrame): A DataFrame that contains cleaned data for all games played within the scope of the query, 
@@ -231,7 +232,7 @@ def get_game_data_for_weeks(weeks, year):
     
     weeks_games_STATS_DF = pd.DataFrame()
     
-    for w in weeks:
+    for w in weeks_list:
         
         # Create key in the string format "W-YYYY"
         date_str = str(w) + '-' + str(year)
@@ -253,7 +254,7 @@ def get_game_data_for_weeks(weeks, year):
             # Extract game URI and create Boxscore object
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
             if(OFFLINE_MODE):
-                game_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
+                game_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
             else:
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
@@ -276,6 +277,113 @@ def get_game_data_for_weeks(weeks, year):
                         
     return weeks_games_STATS_DF
     
+
+def agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list):
+    """Creates table of each game of all weeks in the query where the stats associated with the given game is the difference between the two opponents' weeks_list averages up to the week the game was played. 
+        E.x., Week 10 of 2023 Buffalo hosted the Denver. If your weeks list is [1, 2, ... , 10] then their entry into the dataframe would be (Denver week 1-9 average statistics) - (Buffalo week 1-9 average statistics).
+
+    Args:
+        schedule_DF (pandas.Dataframe): Output of get_schedule.
+        weeks_games_SUM_DF (pandas.Dataframe): Output of get_game_data_for_weeks. Function call to get_game_data_for_weeks must use same weeks_list argument as this function. 
+        current_week (int): Defines schedule query, must be greater than highest value in weeks_list. In future can be used to compare two teams on any given week. 
+        weeks_list (List of ints): weeks of query
+
+    Returns:
+        pandas.Dataframe: Difference between two opponents' averages up to the week the game was played.  
+    """
+    # Extract schedule for only weeks that have been played
+    schedule_DF = schedule_DF[schedule_DF.week <= current_week]
+
+    # Instantiate statistic aggrigation dataframe
+    agg_weekly_diff_DF = pd.DataFrame()
+
+    # For each week that has been played
+    for w in weeks_list:
+
+        # Extract current week's matchups
+        single_week_games_DF = schedule_DF[schedule_DF.week == w]
+
+        # Create dataframe of stats we want to average for all weeks up to week w
+        teams_weekly_avg_DF = weeks_games_SUM_DF[weeks_games_SUM_DF.week < w].drop(columns = ['score', 'week', 'game_won', 'game_lost'])
+
+        # Group each team's week info into one line (pandas.groupby)
+        # Compute running average of per-game stats (pandas.mean)
+        teams_weekly_avg_DF = teams_weekly_avg_DF.groupby(by=["name", "abbr"]).mean().reset_index().round(3)
+
+        # Create dataframe of stats we want to average for all weeks up to week w
+        win_loss_df = weeks_games_SUM_DF[weeks_games_SUM_DF.week < w][["name", "abbr",'game_won', 'game_lost']]
+
+        # Calculate win percentage
+        win_loss_df = win_loss_df.groupby(by=["name", "abbr"]).sum().reset_index()
+        win_loss_df['win_perc'] = (win_loss_df['game_won'] / (win_loss_df['game_won'] + win_loss_df['game_lost'])).round(3)
+        win_loss_df = win_loss_df.drop(columns = ['game_won', 'game_lost'])
+
+        # Calculate 3rd and 4th down conversion rates
+        try:
+            teams_weekly_avg_DF['fourth_down_perc'] = teams_weekly_avg_DF['fourth_down_conversions'] / teams_weekly_avg_DF['fourth_down_attempts']
+        except ZeroDivisionError:
+            teams_weekly_avg_DF['fourth_down_perc'] = 0
+            teams_weekly_avg_DF['fourth_down_perc'] = teams_weekly_avg_DF['fourth_down_perc'].fillna(0)
+        
+        try:
+            teams_weekly_avg_DF['third_down_perc'] = teams_weekly_avg_DF['third_down_conversions'] / teams_weekly_avg_DF['third_down_attempts']
+        except ZeroDivisionError:
+            teams_weekly_avg_DF['third_down_perc'] = 0
+
+        # Remove counting stat represenations of 3rd and 4th down statistics
+        teams_weekly_avg_DF['fourth_down_perc'] = teams_weekly_avg_DF['fourth_down_perc'].fillna(0)
+        teams_weekly_avg_DF['third_down_perc'] = teams_weekly_avg_DF['third_down_perc'].fillna(0)
+        teams_weekly_avg_DF = teams_weekly_avg_DF.drop(columns = ['fourth_down_attempts', 'fourth_down_conversions', 'third_down_attempts', 'third_down_conversions'])
+
+        # Add win percentage DF to aggregation DF
+        teams_weekly_avg_DF = pd.merge(win_loss_df,teams_weekly_avg_DF, on = ['name', 'abbr'])
+
+        # Merge intersection of season long averages into upcoming weeks schedule
+        away_df = pd.merge(single_week_games_DF,teams_weekly_avg_DF.add_prefix('away_'), on = ['away_name', 'away_abbr'])
+        home_df = pd.merge(single_week_games_DF,teams_weekly_avg_DF.add_prefix('home_'), on = ['home_name', 'home_abbr'])    
+        teams_weekly_avg_DF = pd.merge(away_df,home_df, on = ['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr', 'week'])         
+        
+        # Create differential of of Away-Home season long averages
+        teams_weekly_avg_diff_DF = teams_weekly_avg_DF
+        teams_weekly_avg_diff_DF['win_perc_dif'] = teams_weekly_avg_DF['away_win_perc'] - teams_weekly_avg_DF['home_win_perc']         
+        teams_weekly_avg_diff_DF['first_downs_dif'] = teams_weekly_avg_DF['away_first_downs'] - teams_weekly_avg_DF['home_first_downs']         
+        teams_weekly_avg_diff_DF['fumbles_dif'] = teams_weekly_avg_DF['away_fumbles'] - teams_weekly_avg_DF['home_fumbles']         
+        teams_weekly_avg_diff_DF['interceptions_dif'] = teams_weekly_avg_DF['away_interceptions'] - teams_weekly_avg_DF['home_interceptions']         
+        teams_weekly_avg_diff_DF['net_pass_yards_dif'] = teams_weekly_avg_DF['away_net_pass_yards'] - teams_weekly_avg_DF['home_net_pass_yards']         
+        teams_weekly_avg_diff_DF['pass_attempts_dif'] = teams_weekly_avg_DF['away_pass_attempts'] - teams_weekly_avg_DF['home_pass_attempts']         
+        teams_weekly_avg_diff_DF['pass_completions_dif'] = teams_weekly_avg_DF['away_pass_completions'] - teams_weekly_avg_DF['home_pass_completions']         
+        teams_weekly_avg_diff_DF['pass_touchdowns_dif'] = teams_weekly_avg_DF['away_pass_touchdowns'] - teams_weekly_avg_DF['home_pass_touchdowns']         
+        teams_weekly_avg_diff_DF['pass_yards_dif'] = teams_weekly_avg_DF['away_pass_yards'] - teams_weekly_avg_DF['home_pass_yards']         
+        teams_weekly_avg_diff_DF['penalties_dif'] = teams_weekly_avg_DF['away_penalties'] - teams_weekly_avg_DF['home_penalties']        
+        teams_weekly_avg_diff_DF['points_dif'] = teams_weekly_avg_DF['away_points'] - teams_weekly_avg_DF['home_points']         
+        teams_weekly_avg_diff_DF['rush_attempts_dif'] = teams_weekly_avg_DF['away_rush_attempts'] - teams_weekly_avg_DF['home_rush_attempts']
+        teams_weekly_avg_diff_DF['rush_touchdowns_dif'] = teams_weekly_avg_DF['away_rush_touchdowns'] - teams_weekly_avg_DF['home_rush_touchdowns']
+        teams_weekly_avg_diff_DF['rush_yards_dif'] = teams_weekly_avg_DF['away_rush_yards'] - teams_weekly_avg_DF['home_rush_yards']
+        teams_weekly_avg_diff_DF['time_of_possession_dif'] = teams_weekly_avg_DF['away_time_of_possession'] - teams_weekly_avg_DF['home_time_of_possession']
+        teams_weekly_avg_diff_DF['times_sacked_dif'] = teams_weekly_avg_DF['away_times_sacked'] - teams_weekly_avg_DF['home_times_sacked']
+        teams_weekly_avg_diff_DF['total_yards_dif'] = teams_weekly_avg_DF['away_total_yards'] - teams_weekly_avg_DF['home_total_yards']
+        teams_weekly_avg_diff_DF['turnovers_dif'] = teams_weekly_avg_DF['away_turnovers'] - teams_weekly_avg_DF['home_turnovers'] 
+        teams_weekly_avg_diff_DF['yards_from_penalties_dif'] = teams_weekly_avg_DF['away_yards_from_penalties'] - teams_weekly_avg_DF['home_yards_from_penalties']
+        teams_weekly_avg_diff_DF['yards_lost_from_sacks_dif'] = teams_weekly_avg_DF['away_yards_lost_from_sacks'] - teams_weekly_avg_DF['home_yards_lost_from_sacks']
+        teams_weekly_avg_diff_DF['fourth_down_perc_dif'] = teams_weekly_avg_DF['away_fourth_down_perc'] - teams_weekly_avg_DF['home_fourth_down_perc']
+        teams_weekly_avg_diff_DF['third_down_perc_dif'] = teams_weekly_avg_DF['away_third_down_perc'] - teams_weekly_avg_DF['home_third_down_perc']
+        teams_weekly_avg_diff_DF = teams_weekly_avg_diff_DF.drop(columns = ['away_win_perc', 'away_first_downs', 'away_fumbles', 'away_fumbles_lost', 'away_interceptions','away_net_pass_yards', 'away_pass_attempts','away_pass_completions', 'away_pass_touchdowns', 'away_pass_yards', 'away_penalties', 'away_points', 'away_rush_attempts', 'away_rush_touchdowns', 'away_rush_yards', 'away_time_of_possession', 'away_times_sacked', 'away_total_yards', 'away_turnovers', 'away_yards_from_penalties', 'away_yards_lost_from_sacks','away_fourth_down_perc', 'away_third_down_perc','home_win_perc', 'home_first_downs', 'home_fumbles', 'home_fumbles_lost', 'home_interceptions', 'home_net_pass_yards', 'home_pass_attempts','home_pass_completions', 'home_pass_touchdowns', 'home_pass_yards', 'home_penalties', 'home_points', 'home_rush_attempts', 'home_rush_touchdowns', 'home_rush_yards', 'home_time_of_possession', 'home_times_sacked', 'home_total_yards', 'home_turnovers', 'home_yards_from_penalties', 'home_yards_lost_from_sacks','home_fourth_down_perc', 'home_third_down_perc'])
+
+        # If game has been played add win/loss flag to the dataframe
+        if (teams_weekly_avg_diff_DF['winning_name'].isnull().values.any()):
+            teams_weekly_avg_diff_DF['result'] = np.nan
+            print(f"Week {w} games have not finished yet.")        
+        else:
+            teams_weekly_avg_diff_DF['result'] = teams_weekly_avg_diff_DF['winning_name'] == teams_weekly_avg_diff_DF['away_name']
+            teams_weekly_avg_diff_DF['result'] = teams_weekly_avg_diff_DF['result'].astype('float')
+            teams_weekly_avg_diff_DF = teams_weekly_avg_diff_DF.drop(columns = ['winning_name', 'winning_abbr']) 
+            agg_weekly_diff_DF = pd.concat([agg_weekly_diff_DF, teams_weekly_avg_diff_DF])
+            agg_weekly_diff_DF = agg_weekly_diff_DF.reset_index().drop(columns = 'index')
+ 
+    return agg_weekly_diff_DF
+    
+
+
 def main():
     # Tests for offline storage function
     if(False):
@@ -306,7 +414,7 @@ def main():
         # Get game 0's URI and Boxscore
         weekX_gameY_URI = weekXthruY_BOX.games[date_str][game_num]['boxscore']
         if(OFFLINE_MODE):
-            weekX_gameY_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{weekX_gameY_URI}.csv')
+            weekX_gameY_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{weekX_gameY_URI}.csv', index_col=0)
         else:
             weekX_gameY_BOX_DF = Boxscore(weekX_gameY_URI).dataframe
 
@@ -319,10 +427,31 @@ def main():
         print(away_STATS_DF.to_string())
         print(home_STATS_DF.to_string())
 
+    # Tests for get_game_data_for_weeks
     if(False):   
-       print(get_game_data_for_weeks([1], 2023).to_string())  
+        print(get_game_data_for_weeks([1,2], 2022).to_string())
 
-           
+    # Tests for agg_weekly_data
+    if(True):
+        firstweek = 1
+        lastweek = 10
+        weeks_list = list(range(firstweek, lastweek + 1))
+        year = 2023
+        current_week = 11
+
+        # Create schedule and per week game summaries
+        if(OFFLINE_MODE):
+            schedule_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\get_schedule_Wk1-18_{year}.csv', index_col=0)
+            weeks_games_SUM_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\game_data_for_weeks_Wk{firstweek}-{lastweek}_{year}.csv', index_col=0)
+  
+        else:
+            schedule_DF = get_schedule(2023, 1, 18)
+            weeks_games_SUM_DF = get_game_data_for_weeks(weeks_list, year)
+        
+        weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
+        print(weekly_agg_DF.to_string())
+        weekly_agg_DF.to_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\weekly_agg_data_Wk{firstweek}-{lastweek}_{year}.csv')
+        
 if __name__ == "__main__":
     try:
         main()
