@@ -443,8 +443,52 @@ def merge_rankings(weekly_agg_DF,elo_DF):
     
     return weekly_agg_DF
 
+def prep_model_data(current_week, weeks_list, year):
+    """ Returns a training set of games that have happened and a test set of games that will happen. 
+    Both sets contain week by week statistical and elo differences between opponents. 
+
+    Args:
+        current_week (int): Week of test data (games that will happen)
+        weeks_list (List of ints): Weeks of training game data (games that have happened)
+        year (int): Year of data query
+
+    Returns:
+        test_DF (pandas.Dataframe), training_DF (pandas.Dataframe): Week by week statistical and elo differences between two opponents. 
+                                                                    training_DF is the set of games that have happened
+                                                                    test_DF is the set of games that will happen
+    """
+    # Get schedule and weekly summary of games
+    current_week = current_week + 1
+    schedule_DF  = get_schedule(year, 1, 18)
+    weeks_games_SUM_DF = get_game_data_for_weeks(weeks_list, year)
+
+    # Week by week statistical difference between two opponents
+    weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
+
+    # Get week by week team elo ratings
+    elo_DF = get_elo(year)
+
+    # Merge elo ratings with week by week statistical difference dataframe (weekly_agg_DF)
+    weekly_agg_DF = merge_rankings(weekly_agg_DF, elo_DF)
+    
+    # Seperate training data (games that have happened) from test data (games that will happen)
+    current_week = current_week - 1
+    training_DF = weekly_agg_DF[weekly_agg_DF['week'] < current_week]
+    test_DF = weekly_agg_DF[weekly_agg_DF.week == current_week]
+    return test_DF, training_DF
+
 def main():
     if (True):
+        firstweek = 1
+        current_week = 9
+        weeks_list = list(range(firstweek, current_week + 1))
+        year = 2022
+        test_df, train_df = prep_model_data(current_week, weeks_list, year)
+        display(train_df)
+        display(test_df)
+
+
+    if (False):
         elo_DF = get_elo(2022)
         firstweek = 1
         lastweek = 2
