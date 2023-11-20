@@ -53,7 +53,7 @@ def store_data(year, firstweek, lastweek):
             print(g)
             print(game_URI)
             game_BOX_DF.to_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
-    
+        
 def sportsipy_submodule_summary():
     """
     Instantiate and print some of the various Data Types within the sportsipy submodule.
@@ -381,13 +381,135 @@ def agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list):
             agg_weekly_diff_DF = agg_weekly_diff_DF.reset_index().drop(columns = 'index')
  
     return agg_weekly_diff_DF
-    
 
+def get_elo(year):
+    """Returns filtered week by week 583 Elo rankings for given year
+
+    Args:
+        year (int): year of query
+
+    Returns:
+        pandas.Dataframe: Filtered week by week 583 Elo rankings for given year
+    """
+    # Get stored CSV and filter for 2022 season regular season
+    elo_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\nfl_elo.csv')
+    elo_DF = elo_DF[elo_DF['playoff'].isna()]
+    elo_DF = elo_DF[elo_DF['season'] >= year]
+    
+    # Drop unwanted columns
+    elo_DF = elo_DF.drop(columns = ['season', 'neutral' ,'playoff', 'elo_prob1', 'elo_prob2', 'elo1_post', 'elo2_post',
+           'qbelo1_pre', 'qbelo2_pre', 'qb1', 'qb2', 'qb1_adj', 'qb2_adj', 'qbelo_prob1', 'qbelo_prob2',
+           'qb1_game_value', 'qb2_game_value', 'qb1_value_post', 'qb2_value_post',
+           'qbelo1_post', 'qbelo2_post', 'score1', 'score2'])
+    
+    # Rename team abbreviations to match pro-football-reference abbreviations
+    elo_DF['team1'] = elo_DF['team1'].replace(['KC', 'JAX', 'CAR', 'BAL', 'BUF', 'MIN', 'DET', 'ATL', 'NE', 'WSH',
+           'CIN', 'NO', 'SF', 'LAR', 'NYG', 'DEN', 'CLE', 'IND', 'TEN', 'NYJ',
+           'TB', 'MIA', 'PIT', 'PHI', 'GB', 'CHI', 'DAL', 'ARI', 'LAC', 'HOU',
+           'SEA', 'OAK'],
+            ['kan','jax','car', 'rav', 'buf', 'min', 'det', 'atl', 'nwe', 'was', 
+            'cin', 'nor', 'sfo', 'ram', 'nyg', 'den', 'cle', 'clt', 'oti', 'nyj', 
+             'tam','mia', 'pit', 'phi', 'gnb', 'chi', 'dal', 'crd', 'sdg', 'htx', 'sea', 'rai' ])
+    elo_DF['team2'] = elo_DF['team2'].replace(['KC', 'JAX', 'CAR', 'BAL', 'BUF', 'MIN', 'DET', 'ATL', 'NE', 'WSH',
+           'CIN', 'NO', 'SF', 'LAR', 'NYG', 'DEN', 'CLE', 'IND', 'TEN', 'NYJ',
+           'TB', 'MIA', 'PIT', 'PHI', 'GB', 'CHI', 'DAL', 'ARI', 'LAC', 'HOU',
+           'SEA', 'OAK'],
+            ['kan','jax','car', 'rav', 'buf', 'min', 'det', 'atl', 'nwe', 'was', 
+            'cin', 'nor', 'sfo', 'ram', 'nyg', 'den', 'cle', 'clt', 'oti', 'nyj', 
+             'tam','mia', 'pit', 'phi', 'gnb', 'chi', 'dal', 'crd', 'sdg', 'htx', 'sea', 'rai' ])
+
+    return elo_DF
+
+def merge_rankings(weekly_agg_DF,elo_DF):
+    """Merge agg_weekly_data output with get_elo output. Calculates difference between opponent's elo and adds it to agg_weekly_data's output which 
+    contains a statistical difference between two opponents' averages up to the week the game was played.
+
+    Args:
+        weekly_agg_DF (pandas.Dataframe): agg_weekly_data output. Statistical difference between two opponent's averages up to the week the game was played.
+        elo_DF (pandas.Dataframe): get_elo output. Filtered week by week 583 Elo rankings for given year.
+
+    Returns:
+        pandas.Dataframe: Week by week statistical difference between two opponents including elo rating
+    """
+    # Merge tables based on intersection of abbreviations
+    weekly_agg_DF = pd.merge(weekly_agg_DF, elo_DF, how = 'inner', left_on = ['home_abbr', 'away_abbr'], right_on = ['team1', 'team2']).drop(columns = ['date', 'team1', 'team2'])
+
+    # Calculate difference between opponent's elo
+    weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
+    weekly_agg_DF['qb_dif'] = weekly_agg_DF['qb2_value_pre'] - weekly_agg_DF['qb1_value_pre']
+
+    # Drop unused elo stats
+    weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
+    
+    return weekly_agg_DF
+
+def prep_model_data(current_week, weeks_list, year):
+    """ Returns a training set of games that have happened and a test set of games that will happen. 
+    Both sets contain week by week statistical and elo differences between opponents. 
+
+    Args:
+        current_week (int): Week of test data (games that will happen)
+        weeks_list (List of ints): Weeks of training game data (games that have happened)
+        year (int): Year of data query
+
+    Returns:
+        test_DF (pandas.Dataframe), training_DF (pandas.Dataframe): Week by week statistical and elo differences between two opponents. 
+                                                                    training_DF is the set of games that have happened
+                                                                    test_DF is the set of games that will happen
+    """
+    # Get schedule and weekly summary of games
+    current_week = current_week + 1
+    schedule_DF  = get_schedule(year, 1, 18)
+    weeks_games_SUM_DF = get_game_data_for_weeks(weeks_list, year)
+
+    # Week by week statistical difference between two opponents
+    weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
+
+    # Get week by week team elo ratings
+    elo_DF = get_elo(year)
+
+    # Merge elo ratings with week by week statistical difference dataframe (weekly_agg_DF)
+    weekly_agg_DF = merge_rankings(weekly_agg_DF, elo_DF)
+    
+    # Seperate training data (games that have happened) from test data (games that will happen)
+    current_week = current_week - 1
+    training_DF = weekly_agg_DF[weekly_agg_DF['week'] < current_week]
+    test_DF = weekly_agg_DF[weekly_agg_DF.week == current_week]
+    return test_DF, training_DF
 
 def main():
+    if (True):
+        firstweek = 1
+        current_week = 9
+        weeks_list = list(range(firstweek, current_week + 1))
+        year = 2022
+        test_df, train_df = prep_model_data(current_week, weeks_list, year)
+        display(train_df)
+        display(test_df)
+
+
+    if (False):
+        elo_DF = get_elo(2022)
+        firstweek = 1
+        lastweek = 2
+        weeks_list = list(range(firstweek, lastweek + 1))
+        year = 2022
+        current_week = 3
+
+        # Create schedule and per week game summaries
+        schedule_DF = get_schedule(2022, 1, 18)
+        weeks_games_SUM_DF = get_game_data_for_weeks(weeks_list, year)
+        weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
+
+        print(merge_rankings(weekly_agg_DF, elo_DF).to_string())
+        
+
+    if(False):
+        get_elo(2022).to_string()
+
     # Tests for offline storage function
     if(False):
-        store_data(2023, 10, 10)
+        store_data(2022, 1, 1)
 
     # Tests for sportsipy_submodule_summary function
     # No Offline Mode Implemented
@@ -432,7 +554,7 @@ def main():
         print(get_game_data_for_weeks([1,2], 2022).to_string())
 
     # Tests for agg_weekly_data
-    if(True):
+    if(False):
         firstweek = 1
         lastweek = 10
         weeks_list = list(range(firstweek, lastweek + 1))
