@@ -6,6 +6,9 @@ import pandas as pd
 import numpy as np
 import sys
 import pickle
+from IPython.display import display, HTML
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
 
 OFFLINE_MODE = True
 
@@ -318,6 +321,9 @@ def agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list):
         win_loss_df['win_perc'] = (win_loss_df['game_won'] / (win_loss_df['game_won'] + win_loss_df['game_lost'])).round(3)
         win_loss_df = win_loss_df.drop(columns = ['game_won', 'game_lost'])
 
+        # Handle Week 1 Ties
+        win_loss_df['win_perc'] = win_loss_df['win_perc'].fillna(0)
+
         # Calculate 3rd and 4th down conversion rates
         try:
             teams_weekly_avg_DF['fourth_down_perc'] = teams_weekly_avg_DF['fourth_down_conversions'] / teams_weekly_avg_DF['fourth_down_attempts']
@@ -367,7 +373,12 @@ def agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list):
         teams_weekly_avg_diff_DF['yards_lost_from_sacks_dif'] = teams_weekly_avg_DF['away_yards_lost_from_sacks'] - teams_weekly_avg_DF['home_yards_lost_from_sacks']
         teams_weekly_avg_diff_DF['fourth_down_perc_dif'] = teams_weekly_avg_DF['away_fourth_down_perc'] - teams_weekly_avg_DF['home_fourth_down_perc']
         teams_weekly_avg_diff_DF['third_down_perc_dif'] = teams_weekly_avg_DF['away_third_down_perc'] - teams_weekly_avg_DF['home_third_down_perc']
-        teams_weekly_avg_diff_DF = teams_weekly_avg_diff_DF.drop(columns = ['away_win_perc', 'away_first_downs', 'away_fumbles', 'away_fumbles_lost', 'away_interceptions','away_net_pass_yards', 'away_pass_attempts','away_pass_completions', 'away_pass_touchdowns', 'away_pass_yards', 'away_penalties', 'away_points', 'away_rush_attempts', 'away_rush_touchdowns', 'away_rush_yards', 'away_time_of_possession', 'away_times_sacked', 'away_total_yards', 'away_turnovers', 'away_yards_from_penalties', 'away_yards_lost_from_sacks','away_fourth_down_perc', 'away_third_down_perc','home_win_perc', 'home_first_downs', 'home_fumbles', 'home_fumbles_lost', 'home_interceptions', 'home_net_pass_yards', 'home_pass_attempts','home_pass_completions', 'home_pass_touchdowns', 'home_pass_yards', 'home_penalties', 'home_points', 'home_rush_attempts', 'home_rush_touchdowns', 'home_rush_yards', 'home_time_of_possession', 'home_times_sacked', 'home_total_yards', 'home_turnovers', 'home_yards_from_penalties', 'home_yards_lost_from_sacks','home_fourth_down_perc', 'home_third_down_perc'])
+        teams_weekly_avg_diff_DF = teams_weekly_avg_diff_DF.drop(
+            columns=['away_win_perc', 'away_first_downs', 'away_fumbles', 'away_fumbles_lost', 'away_interceptions', 'away_net_pass_yards', 'away_pass_attempts', 'away_pass_completions', 'away_pass_touchdowns', 'away_pass_yards',
+                     'away_penalties', 'away_points', 'away_rush_attempts', 'away_rush_touchdowns', 'away_rush_yards', 'away_time_of_possession', 'away_times_sacked', 'away_total_yards', 'away_turnovers', 'away_yards_from_penalties',
+                     'away_yards_lost_from_sacks', 'away_fourth_down_perc', 'away_third_down_perc', 'home_win_perc', 'home_first_downs', 'home_fumbles', 'home_fumbles_lost', 'home_interceptions', 'home_net_pass_yards', 'home_pass_attempts',
+                     'home_pass_completions', 'home_pass_touchdowns', 'home_pass_yards', 'home_penalties', 'home_points', 'home_rush_attempts', 'home_rush_touchdowns', 'home_rush_yards', 'home_time_of_possession', 'home_times_sacked',
+                     'home_total_yards', 'home_turnovers', 'home_yards_from_penalties', 'home_yards_lost_from_sacks', 'home_fourth_down_perc', 'home_third_down_perc'])
 
         # If game has been played add win/loss flag to the dataframe
         if (teams_weekly_avg_diff_DF['winning_name'].isnull().values.any()):
@@ -477,16 +488,56 @@ def prep_model_data(current_week, weeks_list, year):
     test_DF = weekly_agg_DF[weekly_agg_DF.week == current_week]
     return test_DF, training_DF
 
+
+def displayFunc(y_pred_data_list, test_data_DF):
+    """Displays weekly projections in a more human redable format. 
+
+    Args:
+        y_pred_data_list (array): Array of predicted win probability
+        test_data_DF (pandas.Dataframe): test data set
+    """
+    for g in range(len(y_pred_data_list)):
+        win_prob = round(y_pred_data_list[g], 2)
+        away_team = test_data_DF.reset_index().drop(columns='index').loc[g, 'away_name']
+        home_team = test_data_DF.reset_index().drop(columns='index').loc[g, 'home_name']
+        print(f'The {away_team} have a probability of {win_prob} of beating the {home_team}.')
+
+
 def main():
     if (True):
         firstweek = 1
-        current_week = 9
+        current_week = 16
         weeks_list = list(range(firstweek, current_week + 1))
         year = 2022
-        test_df, train_df = prep_model_data(current_week, weeks_list, year)
-        display(train_df)
-        display(test_df)
+        future_games_DF, completed_games_DF = prep_model_data(current_week, weeks_list, year)
 
+        # Randomly seperate completed games into 80% training data and 20% test data
+        msk = np.random.rand(len(completed_games_DF)) < 0.8
+        train_data_DF = completed_games_DF[msk]
+        test_data_DF = completed_games_DF[~msk]
+
+        # Separate input training data from result training outcome
+        x_training_data_DF = train_data_DF.drop(columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'week', 'result'])
+        y_training_data_DF = train_data_DF[['result']]
+        x_test_data_DF = test_data_DF.drop(columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'week', 'result'])
+        y_test_data_DF = test_data_DF[['result']]
+
+        # Create linear regression function
+        clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
+                                 intercept_scaling=1, class_weight='balanced', random_state=None,
+                                 solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
+        
+        
+        # Fit model according to training data        
+        clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
+        y_pred_data_list = clf.predict_proba(x_test_data_DF)
+        y_pred_data_list = y_pred_data_list[:, 1]
+        
+        displayFunc(y_pred_data_list, test_data_DF)
+
+        # Check our predictions against the completed test data games.
+        # Round predicted probablity of a victory to a 1 or 0
+        print(accuracy_score(y_test_data_DF, np.round(y_pred_data_list)))
 
     if (False):
         elo_DF = get_elo(2022)
@@ -502,40 +553,39 @@ def main():
         weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
 
         print(merge_rankings(weekly_agg_DF, elo_DF).to_string())
-        
 
-    if(False):
+    if (False):
         get_elo(2022).to_string()
 
     # Tests for offline storage function
-    if(False):
+    if (False):
         store_data(2022, 1, 1)
 
     # Tests for sportsipy_submodule_summary function
     # No Offline Mode Implemented
-    if(False):
+    if (False):
         sportsipy_submodule_summary()
-        
+
     # Tests for get_schedule function. Week 13 of 2022 has a Tie so its a good query.
-    if(False):
+    if (False):
         print(get_schedule(2023, 1, 1).to_string())
 
     # Tests for clean_game_data function
-    if(False):
+    if (False):
         w = 1
         year = 2023
         game_num = 0
         date_str = str(w) + '-' + str(year)
-        if(OFFLINE_MODE):
+        if (OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file:
                 weekXthruY_BOX = pickle.load(file)
         else:
             weekXthruY_BOX = Boxscores(1, year, w)
 
         # Get game 0's URI and Boxscore
         weekX_gameY_URI = weekXthruY_BOX.games[date_str][game_num]['boxscore']
-        if(OFFLINE_MODE):
+        if (OFFLINE_MODE):
             weekX_gameY_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{weekX_gameY_URI}.csv', index_col=0)
         else:
             weekX_gameY_BOX_DF = Boxscore(weekX_gameY_URI).dataframe
@@ -550,11 +600,11 @@ def main():
         print(home_STATS_DF.to_string())
 
     # Tests for get_game_data_for_weeks
-    if(False):   
-        print(get_game_data_for_weeks([1,2], 2022).to_string())
+    if (False):
+        print(get_game_data_for_weeks([1, 2], 2022).to_string())
 
     # Tests for agg_weekly_data
-    if(False):
+    if (False):
         firstweek = 1
         lastweek = 10
         weeks_list = list(range(firstweek, lastweek + 1))
@@ -562,18 +612,19 @@ def main():
         current_week = 11
 
         # Create schedule and per week game summaries
-        if(OFFLINE_MODE):
+        if (OFFLINE_MODE):
             schedule_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\get_schedule_Wk1-18_{year}.csv', index_col=0)
             weeks_games_SUM_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\game_data_for_weeks_Wk{firstweek}-{lastweek}_{year}.csv', index_col=0)
-  
+
         else:
             schedule_DF = get_schedule(2023, 1, 18)
             weeks_games_SUM_DF = get_game_data_for_weeks(weeks_list, year)
-        
+
         weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
         print(weekly_agg_DF.to_string())
         weekly_agg_DF.to_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\weekly_agg_data_Wk{firstweek}-{lastweek}_{year}.csv')
-        
+
+
 if __name__ == "__main__":
     try:
         main()
