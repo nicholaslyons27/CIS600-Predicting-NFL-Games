@@ -9,7 +9,6 @@ import pickle
 from IPython.display import display, HTML
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
-import xgboost as xgb
 
 OFFLINE_MODE = True
 
@@ -494,8 +493,8 @@ def displayFunc(y_pred_data_list, test_data_DF):
     """Displays weekly projections in a more human redable format. 
 
     Args:
-        y_pred_data_list (array): _description_
-        test_data_DF (pandas.Dataframe): _description_
+        y_pred_data_list (array): Array of predicted win probability
+        test_data_DF (pandas.Dataframe): test data set
     """
     for g in range(len(y_pred_data_list)):
         win_prob = round(y_pred_data_list[g], 2)
@@ -507,7 +506,7 @@ def displayFunc(y_pred_data_list, test_data_DF):
 def main():
     if (True):
         firstweek = 1
-        current_week = 9
+        current_week = 16
         weeks_list = list(range(firstweek, current_week + 1))
         year = 2022
         future_games_DF, completed_games_DF = prep_model_data(current_week, weeks_list, year)
