@@ -1,5 +1,4 @@
 # Code comment below (# %%) wraps file in an Jypter code cell and runs in interactive window. Use for visualization of dataframes
-# %%
 from sportsipy.nfl.boxscore import Boxscores  # Retrieve a dictionary which contains a major game data of all games being played on a particular day.
 from sportsipy.nfl.boxscore import Boxscore  # Detailed information about the final statistics for a game.
 import pandas as pd
@@ -9,6 +8,10 @@ import pickle
 from IPython.display import display, HTML
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import norm
+import statistics 
 
 OFFLINE_MODE = True
 
@@ -431,7 +434,72 @@ def get_elo(year):
 
     return elo_DF
 
-def merge_rankings(weekly_agg_DF,elo_DF):
+
+def get_spread(year, firstweek, lastweek):
+
+    # List of week range. Note that lastweek is not inclusive so we add 1
+    weeks_list = list(range(firstweek, lastweek + 1))
+
+    # Instantiate schedule dataframe
+    schedule_SUM_DF = pd.DataFrame()
+    spread_DF = pd.DataFrame()
+
+    # For each week of the season
+    # for w in range(len(weeks_list)):
+    for w in weeks_list:
+
+        # Create key in the string format "W-YYYY"
+        date_str = str(w) + '-' + str(year)
+
+        if(OFFLINE_MODE):
+            # Load and deserialize Boxscores(W, YYYY)
+            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+                week_w_BOX = pickle.load(file) 
+        else:
+            # Create Boxscores Object for current week w     
+            week_w_BOX = Boxscores(w, year)
+
+        # Instantiate dataframe for current week w
+        week_games_SUM_DF = pd.DataFrame()
+
+        # For each game data dictionary
+        for g in range(len(week_w_BOX.games[date_str])):
+
+            # Extract game URI and create Boxscore object
+            game_URI = week_w_BOX.games[date_str][g]['boxscore']
+            if(OFFLINE_MODE):
+                game_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
+            else:
+                game_BOX_DF = Boxscore(game_URI).dataframe
+
+
+
+            # Create dataframe out of select game statistic keys
+            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr'])
+            
+            # Create dataframe out of select game statistic keys
+            spread_DF = game_BOX_DF.filter(['vegas_line'])           
+            spread_DF[['favorite', 'spread']] = spread_DF['vegas_line'].str.split('-', n=1, expand=True)
+            
+            spread_double = float(spread_DF['spread'].loc[spread_DF.index[0]])
+               
+            if (spread_DF['favorite'].loc[spread_DF.index[0]].strip() == game_SUM_DF['home_name'].loc[game_SUM_DF.index[0]].strip()):
+                spread_double = spread_double * -1
+            
+            game_SUM_DF['vegas_line'] = spread_double
+           
+            # Add week # to each index
+            game_SUM_DF['week'] = w
+
+            # Concat current game to list of this weeks game
+            week_games_SUM_DF = pd.concat([week_games_SUM_DF, game_SUM_DF])
+
+        # Concat current game to season long dataframe
+        schedule_SUM_DF = pd.concat([schedule_SUM_DF, week_games_SUM_DF]).reset_index().drop(columns=['index'])
+
+    return schedule_SUM_DF
+
+def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
     """Merge agg_weekly_data output with get_elo output. Calculates difference between opponent's elo and adds it to agg_weekly_data's output which 
     contains a statistical difference between two opponents' averages up to the week the game was played.
 
@@ -444,6 +512,7 @@ def merge_rankings(weekly_agg_DF,elo_DF):
     """
     # Merge tables based on intersection of abbreviations
     weekly_agg_DF = pd.merge(weekly_agg_DF, elo_DF, how = 'inner', left_on = ['home_abbr', 'away_abbr'], right_on = ['team1', 'team2']).drop(columns = ['date', 'team1', 'team2'])
+    weekly_agg_DF = pd.merge(weekly_agg_DF, spread_DF, how = 'inner', on = ['home_abbr', 'away_abbr', 'week', 'away_name', 'home_name']).drop(columns = ['winning_name', 'winning_abbr'])
 
     # Calculate difference between opponent's elo
     weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
@@ -452,6 +521,8 @@ def merge_rankings(weekly_agg_DF,elo_DF):
     # Drop unused elo stats
     weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
     
+    print(weekly_agg_DF)
+
     return weekly_agg_DF
 
 def prep_model_data(current_week, weeks_list, year):
@@ -471,16 +542,19 @@ def prep_model_data(current_week, weeks_list, year):
     # Get schedule and weekly summary of games
     current_week = current_week + 1
     schedule_DF  = get_schedule(year, 1, 18)
+
+    # Returns DataFrame that has single game counting stats. Each row is one team's game result
     weeks_games_SUM_DF = get_game_data_for_weeks(weeks_list, year)
 
     # Week by week statistical difference between two opponents
     weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
 
-    # Get week by week team elo ratings
+    # Get week by week team elo ratings and week by week spread
     elo_DF = get_elo(year)
+    spread_DF = get_spread(year, 1, 18)
 
     # Merge elo ratings with week by week statistical difference dataframe (weekly_agg_DF)
-    weekly_agg_DF = merge_rankings(weekly_agg_DF, elo_DF)
+    weekly_agg_DF = merge_rankings(weekly_agg_DF, elo_DF, spread_DF)
     
     # Seperate training data (games that have happened) from test data (games that will happen)
     current_week = current_week - 1
@@ -503,12 +577,103 @@ def displayFunc(y_pred_data_list, test_data_DF):
         print(f'The {away_team} have a probability of {win_prob} of beating the {home_team}.')
 
 
+def correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF):
+        
+        #https://projector-video-pdf-converter.datacamp.com/13027/chapter2.pdf
+        # Curse of dimensionality
+        # Overfitting
+
+        # Create correlation out of training data
+        corr = x_training_data_DF.corr()
+                
+        # Mask top half of correlation heatmap so redundant values are not printed
+        mask = np.triu(np.ones_like(corr, dtype=bool))
+        corr = corr.mask(mask)
+
+        # Size and create heatmap 
+        fig, ax = plt.subplots(figsize=(15,15))     
+        cmap = sns.diverging_palette(h_neg=10, h_pos=240, as_cmap=True)
+        sns.heatmap(corr, center=0, cmap=cmap, linewidths=1, annot=True, fmt=".2f", ax=ax)
+
+        # Extract features that are over 90% correlated to another feature
+        to_drop = [c for c in corr.columns if any(corr[c].abs() > 0.90)]
+        
+        # Drop features that are over 90% correlated to another feature
+        print(to_drop)
+        return (x_training_data_DF.drop(columns = to_drop), x_test_data_DF.drop(columns = to_drop))
+
+def generalDimensionalityReduction(x_training_data_DF, x_test_data_DF):
+    to_drop = ['quality', 'importance', 'total_rating', 'win_perc_dif']
+    return (x_training_data_DF.drop(columns = to_drop), x_test_data_DF.drop(columns = to_drop))
+
+""""
+def attributeTransformation():
+    Convert everything to a Z-score
+
+def featureSelection():
+    # Add in vegas spread to regression model
+    # Remove importance - importance measures how much the result will alter playoff projections
+    # Need to talk about how accurate these spreads are historically
+    # Also talk about how football is not all stats
+    #https://core.ac.uk/download/pdf/70981058.pdf
+    #https://scholarworks.uni.edu/cgi/viewcontent.cgi?article=1538&context=hpt
+
+    
+def sampling():
+
+
+def aggregation():
+
+Page 67 of textbook
+o Aggregation
+o Sampling
+o Dimensionality reduction
+    #https://projects.fivethirtyeight.com/2022-nfl-predictions/
+    Remove quality - doesnt tell you how good one team is over another just tells you if the quality of the matchup is high
+    Remove importance - tells you if the game has large implications but not for which team
+    Remove total_rating - average of two above
+o Feature subset selection
+o Feature creation
+o Discretization and binarization
+o Variable transformation
+"""
+
+def displayWinPerc(completed_games_DF):
+        # Format diagram
+        plt.figure(figsize = (10,10))
+        plt.title("Histogram of win percentage difference in each game")
+        
+        # Calculate mean and std of win percentage
+        mean, std = norm.fit(completed_games_DF['win_perc_dif']) 
+        x_min = completed_games_DF['win_perc_dif'].min()
+        x_max = completed_games_DF['win_perc_dif'].max()
+
+        # Create and plot probability density function 
+        sns.histplot(x = completed_games_DF['win_perc_dif'], edgecolor = None, color = 'lightblue', bins = 15, stat = 'density', label = '2022 Win Diff Probablity Density Function')
+        
+        # Create and plot normal distribution function
+        x_range = np.arange(x_min, x_max, 0.001)
+        y_range = norm.pdf(x_range, mean, std)
+        plt.plot(x_range, y_range, label = "Normal Probability Density Function")
+        
+        # Show diagram
+        plt.legend(loc='upper right')        
+        plt.show()
+
 def main():
-    if (True):
+    if(False):
         firstweek = 1
-        current_week = 16
+        current_week = 3
         weeks_list = list(range(firstweek, current_week + 1))
         year = 2022
+        print(get_spread(year, firstweek, current_week+1))
+
+    if (True):
+        firstweek = 1
+        current_week = 10
+        weeks_list = list(range(firstweek, current_week + 1))
+        year = 2022
+        
         future_games_DF, completed_games_DF = prep_model_data(current_week, weeks_list, year)
 
         # Randomly seperate completed games into 80% training data and 20% test data
@@ -524,8 +689,8 @@ def main():
 
         # Create linear regression function
         clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
-                                 intercept_scaling=1, class_weight='balanced', random_state=None,
-                                 solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
+                                intercept_scaling=1, class_weight='balanced', random_state=None,
+                                solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
         
         
         # Fit model according to training data        
@@ -533,97 +698,15 @@ def main():
         y_pred_data_list = clf.predict_proba(x_test_data_DF)
         y_pred_data_list = y_pred_data_list[:, 1]
         
-        displayFunc(y_pred_data_list, test_data_DF)
+        #displayFunc(y_pred_data_list, test_data_DF)
 
         # Check our predictions against the completed test data games.
         # Round predicted probablity of a victory to a 1 or 0
-        print(accuracy_score(y_test_data_DF, np.round(y_pred_data_list)))
+        #accuracy_score(y_test_data_DF, np.round(y_pred_data_list))
 
-    if (False):
-        elo_DF = get_elo(2022)
-        firstweek = 1
-        lastweek = 2
-        weeks_list = list(range(firstweek, lastweek + 1))
-        year = 2022
-        current_week = 3
-
-        # Create schedule and per week game summaries
-        schedule_DF = get_schedule(2022, 1, 18)
-        weeks_games_SUM_DF = get_game_data_for_weeks(weeks_list, year)
-        weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
-
-        print(merge_rankings(weekly_agg_DF, elo_DF).to_string())
-
-    if (False):
-        get_elo(2022).to_string()
-
-    # Tests for offline storage function
-    if (False):
-        store_data(2022, 1, 1)
-
-    # Tests for sportsipy_submodule_summary function
-    # No Offline Mode Implemented
-    if (False):
-        sportsipy_submodule_summary()
-
-    # Tests for get_schedule function. Week 13 of 2022 has a Tie so its a good query.
-    if (False):
-        print(get_schedule(2023, 1, 1).to_string())
-
-    # Tests for clean_game_data function
-    if (False):
-        w = 1
-        year = 2023
-        game_num = 0
-        date_str = str(w) + '-' + str(year)
-        if (OFFLINE_MODE):
-            # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file:
-                weekXthruY_BOX = pickle.load(file)
-        else:
-            weekXthruY_BOX = Boxscores(1, year, w)
-
-        # Get game 0's URI and Boxscore
-        weekX_gameY_URI = weekXthruY_BOX.games[date_str][game_num]['boxscore']
-        if (OFFLINE_MODE):
-            weekX_gameY_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{weekX_gameY_URI}.csv', index_col=0)
-        else:
-            weekX_gameY_BOX_DF = Boxscore(weekX_gameY_URI).dataframe
-
-        # Print brief summary of a single game within Boxscore's scope.
-        # This is the short version of a Boxscore Object
-        weekX_gameY_SUM = weekXthruY_BOX.games[date_str][game_num]
-        weekX_gameY_SUM_DF = pd.DataFrame.from_dict([weekX_gameY_SUM])
-
-        away_STATS_DF, home_STATS_DF = get_clean_game_data(weekX_gameY_SUM_DF, weekX_gameY_BOX_DF)
-        print(away_STATS_DF.to_string())
-        print(home_STATS_DF.to_string())
-
-    # Tests for get_game_data_for_weeks
-    if (False):
-        print(get_game_data_for_weeks([1, 2], 2022).to_string())
-
-    # Tests for agg_weekly_data
-    if (False):
-        firstweek = 1
-        lastweek = 10
-        weeks_list = list(range(firstweek, lastweek + 1))
-        year = 2023
-        current_week = 11
-
-        # Create schedule and per week game summaries
-        if (OFFLINE_MODE):
-            schedule_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\get_schedule_Wk1-18_{year}.csv', index_col=0)
-            weeks_games_SUM_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\game_data_for_weeks_Wk{firstweek}-{lastweek}_{year}.csv', index_col=0)
-
-        else:
-            schedule_DF = get_schedule(2023, 1, 18)
-            weeks_games_SUM_DF = get_game_data_for_weeks(weeks_list, year)
-
-        weekly_agg_DF = agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list)
-        print(weekly_agg_DF.to_string())
-        weekly_agg_DF.to_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\FunctionOutputs\\weekly_agg_data_Wk{firstweek}-{lastweek}_{year}.csv')
-
+        #x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+        #x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+        #displayWinPerc(completed_games_DF)
 
 if __name__ == "__main__":
     try:
@@ -633,4 +716,3 @@ if __name__ == "__main__":
         print("Exit: Keyboard Interrupted")
         sys.exit(0)
 
-# %%
