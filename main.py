@@ -47,7 +47,7 @@ def store_data(year, firstweek, lastweek):
         week_w_BOX = Boxscores(w, year)
         print(week_w_BOX)
         print(w)
-        with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'wb') as file: 
+        with open(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'wb') as file: 
             pickle.dump(week_w_BOX, file) 
         
         # For each game data dictionary
@@ -58,7 +58,7 @@ def store_data(year, firstweek, lastweek):
             game_BOX_DF = Boxscore(game_URI).dataframe
             print(g)
             print(game_URI)
-            game_BOX_DF.to_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
+            game_BOX_DF.to_csv(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
         
 def sportsipy_submodule_summary():
     """
@@ -134,7 +134,7 @@ def get_schedule(year, firstweek, lastweek):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -245,7 +245,7 @@ def get_game_data_for_weeks(weeks_list, year):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -260,7 +260,7 @@ def get_game_data_for_weeks(weeks_list, year):
             # Extract game URI and create Boxscore object
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
             if(OFFLINE_MODE):
-                game_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
+                game_BOX_DF = pd.read_csv(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
             else:
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
@@ -406,7 +406,7 @@ def get_elo(year):
         pandas.Dataframe: Filtered week by week 583 Elo rankings for given year
     """
     # Get stored CSV and filter for 2022 season regular season
-    elo_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\nfl_elo.csv')
+    elo_DF = pd.read_csv(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\nfl_elo.csv')
     elo_DF = elo_DF[elo_DF['playoff'].isna()]
     elo_DF = elo_DF[elo_DF['season'] >= year]
     
@@ -453,7 +453,7 @@ def get_spread(year, firstweek, lastweek):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -468,14 +468,14 @@ def get_spread(year, firstweek, lastweek):
             # Extract game URI and create Boxscore object
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
             if(OFFLINE_MODE):
-                game_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
+                game_BOX_DF = pd.read_csv(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
             else:
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
 
 
             # Create dataframe out of select game statistic keys
-            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr'])
+            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr','away_score', 'home_name', 'home_abbr', 'home_score', 'winning_name', 'winning_abbr'])
             
             # Create dataframe out of select game statistic keys
             spread_DF = game_BOX_DF.filter(['vegas_line'])           
@@ -512,11 +512,12 @@ def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
     """
     # Merge tables based on intersection of abbreviations
     weekly_agg_DF = pd.merge(weekly_agg_DF, elo_DF, how = 'inner', left_on = ['home_abbr', 'away_abbr'], right_on = ['team1', 'team2']).drop(columns = ['date', 'team1', 'team2'])
-    weekly_agg_DF = pd.merge(weekly_agg_DF, spread_DF, how = 'inner', on = ['home_abbr', 'away_abbr', 'week', 'away_name', 'home_name']).drop(columns = ['winning_name', 'winning_abbr'])
+    weekly_agg_DF = pd.merge(weekly_agg_DF, spread_DF, how = 'inner', on = ['home_abbr', 'away_abbr', 'week', 'away_name','home_name']).drop(columns = ['winning_name', 'winning_abbr'])
 
     # Calculate difference between opponent's elo
     weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
     weekly_agg_DF['qb_dif'] = weekly_agg_DF['qb2_value_pre'] - weekly_agg_DF['qb1_value_pre']
+    weekly_agg_DF['score_dif'] = weekly_agg_DF['away_score'] - weekly_agg_DF['home_score']
 
     # Drop unused elo stats
     weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
@@ -660,6 +661,13 @@ def displayWinPerc(completed_games_DF):
         plt.legend(loc='upper right')        
         plt.show()
 
+def getScores(y_pred_data_list, test_data_DF):
+    actual_scores = list(range(len(y_pred_data_list)))
+    for g in range(len(y_pred_data_list)):
+        actual_scores[g] = test_data_DF.reset_index().drop(columns='index').loc[g, 'away_score'] - test_data_DF.reset_index().drop(columns='index').loc[g, 'home_score']
+        print("Results of away - home: ")
+        print(actual_scores[g])
+
 def main():
     if(False):
         firstweek = 1
@@ -675,16 +683,16 @@ def main():
         year = 2022
         
         future_games_DF, completed_games_DF = prep_model_data(current_week, weeks_list, year)
-
+        print(completed_games_DF)
         # Randomly seperate completed games into 80% training data and 20% test data
         msk = np.random.rand(len(completed_games_DF)) < 0.8
         train_data_DF = completed_games_DF[msk]
         test_data_DF = completed_games_DF[~msk]
 
         # Separate input training data from result training outcome
-        x_training_data_DF = train_data_DF.drop(columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'week', 'result'])
+        x_training_data_DF = train_data_DF.drop(columns=['away_name', 'away_abbr','away_score','home_name', 'home_abbr', 'home_score', 'week', 'result'])
         y_training_data_DF = train_data_DF[['result']]
-        x_test_data_DF = test_data_DF.drop(columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'week', 'result'])
+        x_test_data_DF = test_data_DF.drop(columns=['away_name', 'away_abbr', 'away_score', 'home_name', 'home_abbr', 'home_score', 'week', 'result'])
         y_test_data_DF = test_data_DF[['result']]
 
         # Create linear regression function
@@ -697,8 +705,9 @@ def main():
         clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
         y_pred_data_list = clf.predict_proba(x_test_data_DF)
         y_pred_data_list = y_pred_data_list[:, 1]
-        
-        #displayFunc(y_pred_data_list, test_data_DF)
+
+        actual_scores = getScores(y_pred_data_list, test_data_DF)
+        displayFunc(y_pred_data_list, test_data_DF)
 
         # Check our predictions against the completed test data games.
         # Round predicted probablity of a victory to a 1 or 0
