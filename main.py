@@ -8,6 +8,7 @@ import pickle
 from IPython.display import display, HTML
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+import math
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import norm
@@ -507,7 +508,7 @@ def get_spread(year, firstweek, lastweek):
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
             # Create dataframe out of select game statistic keys
-            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr'])
+            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr','away_score', 'home_name', 'home_abbr', 'home_score', 'winning_name', 'winning_abbr'])
             
             # Create dataframe out of select game statistic keys
             spread_DF = game_BOX_DF.filter(['vegas_line'])
@@ -561,6 +562,7 @@ def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
     # Calculate difference between opponent's elo
     weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
     weekly_agg_DF['qb_dif'] = weekly_agg_DF['qb2_value_pre'] - weekly_agg_DF['qb1_value_pre']
+    #weekly_agg_DF['score_dif'] = weekly_agg_DF['away_score'] - weekly_agg_DF['home_score']
 
     # Drop unused elo stats
     weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
@@ -689,6 +691,112 @@ def displayWinPerc(completed_games_DF):
     plt.legend(loc='upper right')        
     plt.show()
 
+def getScores(y_pred_data_list, test_data_DF):
+    actual_scores = list(range(len(y_pred_data_list)))
+    for g in range(len(y_pred_data_list)):
+        actual_scores[g] = test_data_DF.reset_index().drop(columns='index').loc[g, 'away_score'] - test_data_DF.reset_index().drop(columns='index').loc[g, 'home_score']
+        print("Results of away - home: ")
+        print(actual_scores[g])
+    return actual_scores
+
+def conversion(pred_list):
+    # Define a dictionary to map ranges to values
+    range_favored = {
+        (0.51, 0.5249): -1,
+        (0.525, 0.5349): -1.5,
+        (0.535, 0.5449): -2,
+        (0.545, 0.5939): -2.5,
+        (0.594, 0.6429): -3,
+        (0.643, 0.6579): -3.5,
+        (0.658, 0.6729): -4,
+        (0.673, 0.6809): -4.5,
+        (0.681, 0.6899): -5,
+        (0.69, 0.7069): -5.5,
+        (0.7070, 0.7239): -6,
+        (0.724, 0.7519): -6.5,
+        (0.752, 0.7809): -7,
+        (0.781, 0.7909): -7.5,
+        (0.791, 0.8019): -8,
+        (0.8020, 0.8069): -8.5,
+        (0.8070, 0.8109): -9,
+        (0.8110, 0.8359): -9.5,
+        (0.8360, 0.8599): -10,
+        (0.86, 0.8709): -10.5,
+        (0.871, 0.8819): -11,
+        (0.882, 0.8849): -11.5,
+        (0.885, 0.8869): -12,
+        (0.887, 0.8929): -12.5,
+        (0.893, 0.8999): -13,
+        (0.9, 0.9239): -13.5,
+        (0.924, 0.9489): -14,
+        (0.949, 0.9559): -14.5,
+        (0.956, 0.9629): -15,
+        (0.963, 0.9809): -15.5,
+        (0.981, 0.9999): -16,
+        (1.0, 1.0): -16.5
+        
+    }
+    range_underdog = {
+        (0.488, 0.4751): 1,
+        (0.475, 0.4651): 1.5,
+        (0.465, 0.4551): 2,
+        (0.455, 0.4061): 2.5,
+        (0.406, 0.3571): 3,
+        (0.357, 0.3421): 3.5,
+        (0.342, 0.3271): 4,
+        (0.327, 0.3191): 4.5,
+        (0.319, 0.3111): 5,
+        (0.311, 0.2941): 5.5,
+        (0.294, 0.2771): 6,
+        (0.277, 0.2481): 6.5,
+        (0.248, 0.2191): 7,
+        (0.219, 0.2091): 7.5,
+        (0.209, 0.1981): 8,
+        (0.198, 0.1931): 8.5,
+        (0.193, 0.1891): 9,
+        (0.189, 0.1641): 9.5,
+        (0.164, 0.1401): 10,
+        (0.14, 0.1291): 10.5,
+        (0.129, 0.1181): 11,
+        (0.118, 0.1161): 11.5,
+        (0.116, 0.1131): 12,
+        (0.113, 0.1071): 12.5,
+        (0.107, 0.1001): 13,
+        (0.1, 0.0761): 13.5,
+        (0.076, 0.0511): 14,
+        (0.051, 0.0441): 14.5,
+        (0.044, 0.0371): 15,
+        (0.037, 0.0191): 15.5,
+        (0.019, 0.0001): 16,
+        (0.0, 0.0): 16.5
+    }
+    conv_list = []
+
+    for pred in pred_list:
+        rounded_pred = round(pred, 2)
+        mapped_value = None
+
+        for range_key, value in range_favored.items():
+            if range_key[0] <= rounded_pred <= range_key[1]:
+                mapped_value = value
+                break
+
+        for range_key, value in range_underdog.items():
+            if range_key[0] >= rounded_pred >= range_key[1]:
+                mapped_value = value
+                break
+
+        # If the prediction is exactly 0.5, set mapped_value to 0
+        if rounded_pred == 0.5:
+            mapped_value = 0
+
+        # Append the mapped value if found, else the original prediction
+        conv_list.append(mapped_value if mapped_value is not None else pred)
+
+    return conv_list
+
+
+
 def main():
     if (True):
         firstweek = 1
@@ -713,9 +821,9 @@ def main():
         train_data_DF = pd.concat([completed_games_2020_DF, completed_games_2021_DF]).reset_index().drop(columns='index')
 
         # Separate input training data from result training outcome
-        x_training_data_DF = train_data_DF.drop(columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'week', 'result'])
+        x_training_data_DF = train_data_DF.drop(columns=['away_name', 'away_abbr','away_score','home_name', 'home_abbr', 'home_score', 'week', 'result'])
         y_training_data_DF = train_data_DF[['result']]
-        x_test_data_DF = test_data_DF.drop(columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'week', 'result'])
+        x_test_data_DF = test_data_DF.drop(columns=['away_name', 'away_abbr', 'away_score', 'home_name', 'home_abbr', 'home_score', 'week', 'result'])
         y_test_data_DF = test_data_DF[['result']]
 
 
@@ -734,8 +842,19 @@ def main():
         clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
         y_pred_data_list = clf.predict_proba(x_test_data_DF)
         y_pred_data_list = y_pred_data_list[:, 1]
-        
+
+        actual_scores = getScores(y_pred_data_list, test_data_DF)
+        conv_scores = conversion(y_pred_data_list)
         displayFunc(y_pred_data_list, test_data_DF)
+
+        for g in range(len(conv_scores)):
+            print(conv_scores[g])
+
+        mse = np.square(np.subtract(actual_scores, conv_scores)).mean()
+        rmse = math.sqrt(mse)
+        print("Root Mean Square Error:\n")
+        print(rmse)
+
 
         # Check our predictions against the completed test data games.
         # Round predicted probablity of a victory to a 1 or 0
