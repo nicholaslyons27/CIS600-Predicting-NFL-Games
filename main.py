@@ -8,6 +8,7 @@ import pickle
 from IPython.display import display, HTML
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+import math
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import norm
@@ -517,7 +518,7 @@ def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
     # Calculate difference between opponent's elo
     weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
     weekly_agg_DF['qb_dif'] = weekly_agg_DF['qb2_value_pre'] - weekly_agg_DF['qb1_value_pre']
-    weekly_agg_DF['score_dif'] = weekly_agg_DF['away_score'] - weekly_agg_DF['home_score']
+    #weekly_agg_DF['score_dif'] = weekly_agg_DF['away_score'] - weekly_agg_DF['home_score']
 
     # Drop unused elo stats
     weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
@@ -668,6 +669,143 @@ def getScores(y_pred_data_list, test_data_DF):
         print("Results of away - home: ")
         print(actual_scores[g])
 
+def conversion(pred_list):
+    conv_list = [*pred_list]
+    for p in range(len(pred_list)):
+        if (round(pred_list[p], 2)== .5):
+            conv_list[p] = 0
+        elif (round(pred_list[p], 2)>= .51 and round(pred_list[p], 2)<= .5249):
+            conv_list[p] = -1
+        elif (round(pred_list[p], 2)>= .525 and round(pred_list[p], 2)<= .5349):
+            conv_list[p] = -1.5
+        elif (round(pred_list[p], 2)>= .535 and round(pred_list[p], 2)<= .5449):
+            conv_list[p] = -2
+        elif (round(pred_list[p], 2)>= .545 and round(pred_list[p], 2)<= .5939):
+            conv_list[p] = -2.5
+        elif (round(pred_list[p], 2)>= .594 and round(pred_list[p], 2)<= .6329):
+            conv_list[p] = -3
+        elif (round(pred_list[p], 2)>= .643 and round(pred_list[p], 2)<= .6579):
+            conv_list[p] = -3.5
+        elif (round(pred_list[p], 2)>= .658 and round(pred_list[p], 2)<= .6729):
+            conv_list[p] = -4
+        elif (round(pred_list[p], 2)>= .673 and round(pred_list[p], 2)<= .6809):
+            conv_list[p] = -4.5
+        elif (round(pred_list[p], 2)>= .681 and round(pred_list[p], 2)<= .6899):
+            conv_list[p] = -5
+        elif (round(pred_list[p], 2)>= .69 and round(pred_list[p], 2)<= .7069):
+            conv_list[p] = -5.5
+        elif (round(pred_list[p], 2)>= .7070 and round(pred_list[p], 2)<= .7239):
+            conv_list[p] = -6
+        elif (round(pred_list[p], 2)>= .724 and round(pred_list[p], 2)<= .7519):
+            conv_list[p] = -6.5
+        elif (round(pred_list[p], 2)>= .752 and round(pred_list[p], 2)<= .7809):
+            conv_list[p] = -7
+        elif (round(pred_list[p], 2)>= .781 and round(pred_list[p], 2)<= .7909):
+            conv_list[p] = -7.5
+        elif (round(pred_list[p], 2)>= .791 and round(pred_list[p], 2)<= .8019):
+            conv_list[p] = -8
+        elif (round(pred_list[p], 2)>= .8020 and round(pred_list[p], 2)<= .8069):
+            conv_list[p] = -8.5
+        elif (round(pred_list[p], 2)>= .8070 and round(pred_list[p], 2)<= .8109):
+            conv_list[p] = -9
+        elif (round(pred_list[p], 2)>= .8110 and round(pred_list[p], 2)<= .8359):
+            conv_list[p] = -9.5
+        elif (round(pred_list[p], 2)>= .8360 and round(pred_list[p], 2)<= .8599):
+            conv_list[p] = -10
+        elif (round(pred_list[p], 2)>= .86 and round(pred_list[p], 2)<= .8709):
+            conv_list[p] = -10.5
+        elif (round(pred_list[p], 2)>= .871 and round(pred_list[p], 2)<= .8819):
+            conv_list[p] = -11
+        elif (round(pred_list[p], 2)>= .882 and round(pred_list[p], 2)<= .8849):
+            conv_list[p] = -11.5
+        elif (round(pred_list[p], 2)>= .885 and round(pred_list[p], 2)<= .8869):
+            conv_list[p] = -12
+        elif (round(pred_list[p], 2)>= .887 and round(pred_list[p], 2)<= .8929):
+            conv_list[p] = -12.5
+        elif (round(pred_list[p], 2)>= .893 and round(pred_list[p], 2)<= .8999):
+            conv_list[p] = -13
+        elif (round(pred_list[p], 2)>= .9 and round(pred_list[p], 2)<= .9239):
+            conv_list[p] = -13.5
+        elif (round(pred_list[p], 2)>= .924 and round(pred_list[p], 2)<= .9489):
+            conv_list[p] = -14
+        elif (round(pred_list[p], 2)>= .949 and round(pred_list[p], 2)<= .9559):
+            conv_list[p] = -14.5
+        elif (round(pred_list[p], 2)>= .956 and round(pred_list[p], 2)<= .9629):
+            conv_list[p] = -15
+        elif (round(pred_list[p], 2)>= .963 and round(pred_list[p], 2)<= .9809):
+            conv_list[p] = -15.5
+        elif (round(pred_list[p], 2)>= .981 and round(pred_list[p], 2)<= .9999):
+            conv_list[p] = -16
+        elif (round(pred_list[p], 2)== 1):
+            conv_list[p] = -16.5
+        elif (round(pred_list[p], 2)>= .488 and round(pred_list[p], 2)<= .4751):
+            conv_list[p] = 1
+        elif (round(pred_list[p], 2)>= .475 and round(pred_list[p], 2)<= .4651):
+            conv_list[p] = 1.5
+        elif (round(pred_list[p], 2)>= .465 and round(pred_list[p], 2)<= .4551):
+            conv_list[p] = 2
+        elif (round(pred_list[p], 2)>= .455 and round(pred_list[p], 2)<= .4061):
+            conv_list[p] = 2.5
+        elif (round(pred_list[p], 2)>= .406 and round(pred_list[p], 2)<= .3571):
+            conv_list[p] = 3
+        elif (round(pred_list[p], 2)>= .357 and round(pred_list[p], 2)<= .3421):
+            conv_list[p] = 3.5
+        elif (round(pred_list[p], 2)>= .342 and round(pred_list[p], 2)<= .3271):
+            conv_list[p] = 4
+        elif (round(pred_list[p], 2)>= .327 and round(pred_list[p], 2)<= .3191):
+            conv_list[p] = 4.5
+        elif (round(pred_list[p], 2)>= .319 and round(pred_list[p], 2)<= .3111):
+            conv_list[p] = 5
+        elif (round(pred_list[p], 2)>= .311 and round(pred_list[p], 2)<= .2941):
+            conv_list[p] = 5.5
+        elif (round(pred_list[p], 2)>= .294 and round(pred_list[p], 2)<= .2771):
+            conv_list[p] = 6
+        elif (round(pred_list[p], 2)>= .277 and round(pred_list[p], 2)<= .2481):
+            conv_list[p] = 6.5
+        elif (round(pred_list[p], 2)>= .248 and round(pred_list[p], 2)<= .2191):
+            conv_list[p] = 7
+        elif (round(pred_list[p], 2)>= .219 and round(pred_list[p], 2)<= .2091):
+            conv_list[p] = 7.5
+        elif (round(pred_list[p], 2)>= .209 and round(pred_list[p], 2)<= .1981):
+            conv_list[p] = 8
+        elif (round(pred_list[p], 2)>= .198 and round(pred_list[p], 2)<= .1931):
+            conv_list[p] = 8.5
+        elif (round(pred_list[p], 2)>= .193 and round(pred_list[p], 2)<= .1891):
+            conv_list[p] = 9
+        elif (round(pred_list[p], 2)>= .189 and round(pred_list[p], 2)<= .1641):
+            conv_list[p] = 9.5
+        elif (round(pred_list[p], 2)>= .164 and round(pred_list[p], 2)<= .1401):
+            conv_list[p] = 10
+        elif (round(pred_list[p], 2)>= .14 and round(pred_list[p], 2)<= .1291):
+            conv_list[p] = 10.5
+        elif (round(pred_list[p], 2)>= .129 and round(pred_list[p], 2)<= .1181):
+            conv_list[p] = 11
+        elif (round(pred_list[p], 2)>= .118 and round(pred_list[p], 2)<= .1161):
+            conv_list[p] = 11.5
+        elif (round(pred_list[p], 2)>= .116 and round(pred_list[p], 2)<= .1131):
+            conv_list[p] = 12
+        elif (round(pred_list[p], 2)>= .113 and round(pred_list[p], 2)<= .1071):
+            conv_list[p] = 12.5
+        elif (round(pred_list[p], 2)>= .107 and round(pred_list[p], 2)<= .1001):
+            conv_list[p] = 13
+        elif (round(pred_list[p], 2)>= .1 and round(pred_list[p], 2)<= .0761):
+            conv_list[p] = 13.5
+        elif (round(pred_list[p], 2)>= .076 and round(pred_list[p], 2)<= .0511):
+            conv_list[p] = 14
+        elif (round(pred_list[p], 2)>= .051 and round(pred_list[p], 2)<= .0441):
+            conv_list[p] = 14.5
+        elif (round(pred_list[p], 2)>= .044 and round(pred_list[p], 2)<= .0371):
+            conv_list[p] = 15
+        elif (round(pred_list[p], 2)>= .37 and round(pred_list[p], 2)<= .0191):
+            conv_list[p] = 15.5
+        elif (round(pred_list[p], 2)>= .19 and round(pred_list[p], 2)<= .0001):
+            conv_list[p] = 16
+        elif (round(pred_list[p], 2)== 0):
+            conv_list[p] = 16.5
+    return conv_list
+
+
+
 def main():
     if(False):
         firstweek = 1
@@ -707,7 +845,17 @@ def main():
         y_pred_data_list = y_pred_data_list[:, 1]
 
         actual_scores = getScores(y_pred_data_list, test_data_DF)
+        conv_scores = conversion(y_pred_data_list)
         displayFunc(y_pred_data_list, test_data_DF)
+
+        for g in range(len(conv_scores)):
+            print(conv_scores[g])
+
+        mse = np.square(np.subtract(actual_scores, conv_scores)).mean()
+        rmse = math.sqrt(mse)
+        print("Root Mean Square Error:\n")
+        print(rmse)
+
 
         # Check our predictions against the completed test data games.
         # Round predicted probablity of a victory to a 1 or 0
