@@ -7,7 +7,7 @@ import sys
 import pickle
 from IPython.display import display, HTML
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, roc_curve, auc, precision_recall_curve, brier_score_loss
 import math
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -48,7 +48,7 @@ def store_data(year, firstweek, lastweek):
         week_w_BOX = Boxscores(w, year)
         print(week_w_BOX)
         print(w)
-        with open(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'wb') as file: 
+        with open(f'C:\\Users\\Dylan\\Documents\\UCF\\projects\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'wb') as file: 
             pickle.dump(week_w_BOX, file) 
         
         # For each game data dictionary
@@ -59,7 +59,7 @@ def store_data(year, firstweek, lastweek):
             game_BOX_DF = Boxscore(game_URI).dataframe
             print(g)
             print(game_URI)
-            game_BOX_DF.to_csv(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
+            game_BOX_DF.to_csv(f'C:\\Users\\Dylan\\Documents\\UCF\\projects\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
         
 def sportsipy_submodule_summary():
     """
@@ -135,7 +135,7 @@ def get_schedule(year, firstweek, lastweek):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'C:\\Users\\Dylan\\Documents\\UCF\\projects\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -246,7 +246,7 @@ def get_game_data_for_weeks(weeks_list, year):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'C:\\Users\\Dylan\\Documents\\UCF\\projects\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -261,7 +261,7 @@ def get_game_data_for_weeks(weeks_list, year):
             # Extract game URI and create Boxscore object
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
             if(OFFLINE_MODE):
-                game_BOX_DF = pd.read_csv(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
+                game_BOX_DF = pd.read_csv(f'C:\\Users\\Dylan\\Documents\\UCF\\projects\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
             else:
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
@@ -407,7 +407,7 @@ def get_elo(year):
         pandas.Dataframe: Filtered week by week 583 Elo rankings for given year
     """
     # Get stored CSV and filter for 2022 season regular season
-    elo_DF = pd.read_csv(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\nfl_elo.csv')
+    elo_DF = pd.read_csv(f'C:\\Users\\Dylan\\Documents\\UCF\\projects\\CIS600-Predicting-NFL-Games\\Data\\nfl_elo.csv')
     elo_DF = elo_DF[elo_DF['playoff'].isna()]
     elo_DF = elo_DF[elo_DF['season'] >= year]
     
@@ -454,7 +454,7 @@ def get_spread(year, firstweek, lastweek):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'C:\\Users\\Dylan\\Documents\\UCF\\projects\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -469,7 +469,7 @@ def get_spread(year, firstweek, lastweek):
             # Extract game URI and create Boxscore object
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
             if(OFFLINE_MODE):
-                game_BOX_DF = pd.read_csv(f'C:\\Users\\ChaoticF3ar\\Documents\\GitHub\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
+                game_BOX_DF = pd.read_csv(f'C:\\Users\\Dylan\\Documents\\UCF\\projects\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
             else:
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
@@ -818,6 +818,54 @@ def main():
         print("Root Mean Square Error:\n")
         print(rmse)
 
+        # ROC Analysis
+        fpr, tpr, thresholds = roc_curve(y_test_data_DF, y_pred_data_list)
+        roc_auc = auc(fpr, tpr)
+
+        # Plot ROC Curve
+        plt.figure()
+        plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        plt.xlim([-0.05, 1.0])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate (1 - Specificity)')
+        plt.ylabel('True Positive Rate (Sensitivity)')
+        plt.title('Receiver Operating Characteristic')
+        plt.legend(loc="lower right")
+        plt.show()
+
+        # Plot Precision-Recall Curve
+        precision, recall, thresholds = precision_recall_curve(y_test_data_DF, y_pred_data_list)
+        pr_auc = auc(recall, precision)
+        plt.figure()
+        plt.plot(recall, precision, color='darkorange', lw=2, label='PR curve (area = %0.2f)' % pr_auc)
+        plt.xlim([-0.05, 1.0])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.title('Precision Recall Curve')
+        plt.legend(loc="lower right")
+        plt.show()
+
+        # Plot Precision/Recall vs Threshold Curve
+        plt.figure()
+        plt.plot(thresholds, precision[1:], color='darkorange', lw=2, label='Precision')
+        plt.plot(thresholds, recall[1:], color='navy', lw=2, label='Recall')
+        plt.xlim([-0.05, 1.0])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('Threshold')
+        plt.ylabel('Precision/Recall')
+        plt.title('Precision Recall Curve')
+        plt.legend(loc="lower right")
+        plt.show()
+
+        y_true = y_test_data_DF['result'].astype(int).values
+        y_prob = y_pred_data_list
+
+        # Calculate Brier Score
+        brier_score = brier_score_loss(y_true, y_prob)
+        print(f"Brier Score: {brier_score}")
+        
 
         # Check our predictions against the completed test data games.
         # Round predicted probablity of a victory to a 1 or 0
