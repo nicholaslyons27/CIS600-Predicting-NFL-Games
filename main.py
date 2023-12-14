@@ -14,6 +14,7 @@ from scipy.stats import norm
 import statistics 
 
 OFFLINE_MODE = True
+PREPROCESSING = True
 
 """
 Coding Standard
@@ -118,6 +119,10 @@ def get_schedule(year, firstweek, lastweek):
         schedule_SUM_DF (pandas.DataFrame): A DataFrame of all games played within the scope of the query, 
                             where each row corresponds to a single game.
     """
+
+    # NFL schedule expanded in 2021. Handle bad input of 18th week prior to 2021 season
+    if (year < 2021 & lastweek > 17):
+        lastweek = 17
 
     # List of week range. Note that lastweek is not inclusive so we add 1
     weeks_list = list(range(firstweek, lastweek + 1))
@@ -436,6 +441,24 @@ def get_elo(year):
 
 
 def get_spread(year, firstweek, lastweek):
+    """
+    Create a pandas.DataFrame of Las Vegas spreads for every game played within a specified timeframe.
+
+    Args:
+        year (int): Year of schedule query
+        firstweek (int): Starting week of schedule query (inclusive)
+        lastweek (int): Ending week of schedule query (inclusive)
+
+    Returns:
+        schedule_SUM_DF (pandas.DataFrame): A DataFrame of all games played within the scope of the query, 
+                            where each row corresponds to a single game and they include the Las Vegas spread.
+
+    """
+
+    # NFL schedule expanded in 2021. Handle bad input of 18th week prior to 2021 season
+    if (year < 2021 & lastweek > 17):
+        lastweek = 17
+        print("TRUE")
 
     # List of week range. Note that lastweek is not inclusive so we add 1
     weeks_list = list(range(firstweek, lastweek + 1))
@@ -472,22 +495,24 @@ def get_spread(year, firstweek, lastweek):
             else:
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
-
-
             # Create dataframe out of select game statistic keys
             game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr'])
             
             # Create dataframe out of select game statistic keys
-            spread_DF = game_BOX_DF.filter(['vegas_line'])           
-            spread_DF[['favorite', 'spread']] = spread_DF['vegas_line'].str.split('-', n=1, expand=True)
+            spread_DF = game_BOX_DF.filter(['vegas_line'])
+            if spread_DF['vegas_line'].loc[spread_DF.index[0]].strip() == "Pick":
+                spread_double = 0
+
+            else:         
+                spread_DF[['favorite', 'spread']] = spread_DF['vegas_line'].str.split('-', n=1, expand=True)
             
-            spread_double = float(spread_DF['spread'].loc[spread_DF.index[0]])
+                spread_double = float(spread_DF['spread'].loc[spread_DF.index[0]])
                
-            if (spread_DF['favorite'].loc[spread_DF.index[0]].strip() == game_SUM_DF['home_name'].loc[game_SUM_DF.index[0]].strip()):
-                spread_double = spread_double * -1
+                if (spread_DF['favorite'].loc[spread_DF.index[0]].strip() == game_SUM_DF['home_name'].loc[game_SUM_DF.index[0]].strip()):
+                    spread_double = spread_double * -1
             
             game_SUM_DF['vegas_line'] = spread_double
-           
+            
             # Add week # to each index
             game_SUM_DF['week'] = w
 
@@ -495,8 +520,9 @@ def get_spread(year, firstweek, lastweek):
             week_games_SUM_DF = pd.concat([week_games_SUM_DF, game_SUM_DF])
 
         # Concat current game to season long dataframe
-        schedule_SUM_DF = pd.concat([schedule_SUM_DF, week_games_SUM_DF]).reset_index().drop(columns=['index'])
+        schedule_SUM_DF = pd.concat([schedule_SUM_DF, week_games_SUM_DF]).reset_index().drop(columns='index')
 
+        print(schedule_SUM_DF)
     return schedule_SUM_DF
 
 def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
@@ -506,13 +532,16 @@ def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
     Args:
         weekly_agg_DF (pandas.Dataframe): agg_weekly_data output. Statistical difference between two opponent's averages up to the week the game was played.
         elo_DF (pandas.Dataframe): get_elo output. Filtered week by week 583 Elo rankings for given year.
+        spread_DF (pandas.Dataframe): get_spread output. Filtered week by week Las Vegas gambling spreads.
 
     Returns:
         pandas.Dataframe: Week by week statistical difference between two opponents including elo rating
     """
     # Merge tables based on intersection of abbreviations
     weekly_agg_DF = pd.merge(weekly_agg_DF, elo_DF, how = 'inner', left_on = ['home_abbr', 'away_abbr'], right_on = ['team1', 'team2']).drop(columns = ['date', 'team1', 'team2'])
-    weekly_agg_DF = pd.merge(weekly_agg_DF, spread_DF, how = 'inner', on = ['home_abbr', 'away_abbr', 'week', 'away_name', 'home_name']).drop(columns = ['winning_name', 'winning_abbr'])
+    
+    if(PREPROCESSING):
+        weekly_agg_DF = pd.merge(weekly_agg_DF, spread_DF, how = 'inner', on = ['home_abbr', 'away_abbr', 'week', 'away_name', 'home_name']).drop(columns = ['winning_name', 'winning_abbr'])
 
     # Calculate difference between opponent's elo
     weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
@@ -520,8 +549,6 @@ def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
 
     # Drop unused elo stats
     weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
-    
-    print(weekly_agg_DF)
 
     return weekly_agg_DF
 
@@ -576,110 +603,109 @@ def displayFunc(y_pred_data_list, test_data_DF):
         home_team = test_data_DF.reset_index().drop(columns='index').loc[g, 'home_name']
         print(f'The {away_team} have a probability of {win_prob} of beating the {home_team}.')
 
-
 def correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF):
-        
-        #https://projector-video-pdf-converter.datacamp.com/13027/chapter2.pdf
-        # Curse of dimensionality
-        # Overfitting
+    """Removes highly correlated features from training and test data
 
-        # Create correlation out of training data
-        corr = x_training_data_DF.corr()
-                
-        # Mask top half of correlation heatmap so redundant values are not printed
-        mask = np.triu(np.ones_like(corr, dtype=bool))
-        corr = corr.mask(mask)
+    Args:
+        x_training_data_DF (pandas.Dataframe): Training data set 
+        x_test_data_DF (pandas.Dataframe): Test data set
 
-        # Size and create heatmap 
-        fig, ax = plt.subplots(figsize=(15,15))     
-        cmap = sns.diverging_palette(h_neg=10, h_pos=240, as_cmap=True)
-        sns.heatmap(corr, center=0, cmap=cmap, linewidths=1, annot=True, fmt=".2f", ax=ax)
+    Returns:
+        x_training_data_cleaned_DF (pandas.Dataframe), x_test_data_cleaned_DF (pandas.Dataframe): Training and test data sets with highly correlated features removeds
+    """
+    # Create correlation out of training data
+    corr = x_training_data_DF.corr()
+            
+    # Mask top half of correlation heatmap so redundant values are not printed
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+    corr = corr.mask(mask)
 
-        # Extract features that are over 90% correlated to another feature
-        to_drop = [c for c in corr.columns if any(corr[c].abs() > 0.90)]
-        
-        # Drop features that are over 90% correlated to another feature
-        print(to_drop)
-        return (x_training_data_DF.drop(columns = to_drop), x_test_data_DF.drop(columns = to_drop))
+    # Size and create heatmap 
+    fig, ax = plt.subplots(figsize=(15,15))     
+    cmap = sns.diverging_palette(h_neg=10, h_pos=240, as_cmap=True)
+    sns.heatmap(corr, center=0, cmap=cmap, linewidths=1, annot=True, fmt=".2f", ax=ax)
+
+    # Extract features that are over 90% correlated to another feature
+    to_drop = [c for c in corr.columns if any(corr[c].abs() > 0.90)]
+    
+    # Drop features that are over 90% correlated to another feature
+    print(to_drop)
+    return (x_training_data_DF.drop(columns = to_drop), x_test_data_DF.drop(columns = to_drop))
 
 def generalDimensionalityReduction(x_training_data_DF, x_test_data_DF):
+    """_summary_
+
+    Args:
+        x_training_data_DF (_type_): _description_
+        x_test_data_DF (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     to_drop = ['quality', 'importance', 'total_rating', 'win_perc_dif']
     return (x_training_data_DF.drop(columns = to_drop), x_test_data_DF.drop(columns = to_drop))
 
-""""
-def attributeTransformation():
-    Convert everything to a Z-score
-
-def featureSelection():
-    # Add in vegas spread to regression model
-    # Remove importance - importance measures how much the result will alter playoff projections
-    # Need to talk about how accurate these spreads are historically
-    # Also talk about how football is not all stats
-    #https://core.ac.uk/download/pdf/70981058.pdf
-    #https://scholarworks.uni.edu/cgi/viewcontent.cgi?article=1538&context=hpt
-
-    
-def sampling():
-
-
-def aggregation():
-
-Page 67 of textbook
-o Aggregation
-o Sampling
-o Dimensionality reduction
-    #https://projects.fivethirtyeight.com/2022-nfl-predictions/
-    Remove quality - doesnt tell you how good one team is over another just tells you if the quality of the matchup is high
-    Remove importance - tells you if the game has large implications but not for which team
-    Remove total_rating - average of two above
-o Feature subset selection
-o Feature creation
-o Discretization and binarization
-o Variable transformation
-"""
 
 def displayWinPerc(completed_games_DF):
-        # Format diagram
-        plt.figure(figsize = (10,10))
-        plt.title("Histogram of win percentage difference in each game")
-        
-        # Calculate mean and std of win percentage
-        mean, std = norm.fit(completed_games_DF['win_perc_dif']) 
-        x_min = completed_games_DF['win_perc_dif'].min()
-        x_max = completed_games_DF['win_perc_dif'].max()
+    """Visualize histogram of win_perc_diff stat of the training data
 
-        # Create and plot probability density function 
-        sns.histplot(x = completed_games_DF['win_perc_dif'], edgecolor = None, color = 'lightblue', bins = 15, stat = 'density', label = '2022 Win Diff Probablity Density Function')
-        
-        # Create and plot normal distribution function
-        x_range = np.arange(x_min, x_max, 0.001)
-        y_range = norm.pdf(x_range, mean, std)
-        plt.plot(x_range, y_range, label = "Normal Probability Density Function")
-        
-        # Show diagram
-        plt.legend(loc='upper right')        
-        plt.show()
+    Args:
+        completed_games_DF (pandas.Dataframe): Training dataset that will be analyzed
+    """
+    # Format diagram
+    plt.figure(figsize = (10,10))
+    plt.title("Histogram of win percentage difference in each game")
+    
+    # Calculate mean and std of win percentage
+    mean, std = norm.fit(completed_games_DF['win_perc_dif']) 
+    x_min = completed_games_DF['win_perc_dif'].min()
+    x_max = completed_games_DF['win_perc_dif'].max()
+
+    # Create and plot probability density function 
+    sns.histplot(x = completed_games_DF['win_perc_dif'], edgecolor = None, color = 'lightblue', bins = 15, stat = 'density', label = '2022 Win Diff Probablity Density Function')
+    
+    # Create and plot normal distribution function
+    x_range = np.arange(x_min, x_max, 0.001)
+    y_range = norm.pdf(x_range, mean, std)
+    plt.plot(x_range, y_range, label = "Normal Probability Density Function")
+    
+    # Show diagram
+    plt.legend(loc='upper right')        
+    plt.show()
 
 def main():
+    if(True):
+        firstweek = 1
+        current_week = 18
+        weeks_list = list(range(firstweek, current_week + 1))
+        year = 2021
+        print(get_spread(year, 1, 18))
+    
     if(False):
-        firstweek = 1
-        current_week = 3
-        weeks_list = list(range(firstweek, current_week + 1))
-        year = 2022
-        print(get_spread(year, firstweek, current_week+1))
+        store_data(2020, 18, 18)
 
-    if (True):
-        firstweek = 1
-        current_week = 10
-        weeks_list = list(range(firstweek, current_week + 1))
-        year = 2022
+    if (False):
         
-        future_games_DF, completed_games_DF = prep_model_data(current_week, weeks_list, year)
+        firstweek = 1
+        current_week = 17
+        weeks_list = list(range(firstweek, current_week + 1))
+        year = 2022
+        future_games__2020_DF, completed_games_2020_DF = prep_model_data(current_week, weeks_list, year)
 
-        # Randomly seperate completed games into 80% training data and 20% test data
-        msk = np.random.rand(len(completed_games_DF)) < 0.8
-        train_data_DF = completed_games_DF[msk]
-        test_data_DF = completed_games_DF[~msk]
+        firstweek = 1
+        current_week = 18
+        weeks_list = list(range(firstweek, current_week + 1))
+        year = 2022
+        future_games__2021_DF, completed_games_2021_DF = prep_model_data(current_week, weeks_list, year)
+
+        firstweek = 1
+        current_week = 18
+        weeks_list = list(range(firstweek, current_week + 1))
+        year = 2022
+        future_games__2022_DF, test_data_DF = prep_model_data(current_week, weeks_list, year)
+
+        # Concat 2020 and 2021 training data
+        train_data_DF = pd.concat([completed_games_2020_DF, completed_games_2021_DF]).reset_index().drop(columns='index')
 
         # Separate input training data from result training outcome
         x_training_data_DF = train_data_DF.drop(columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'week', 'result'])
@@ -687,10 +713,16 @@ def main():
         x_test_data_DF = test_data_DF.drop(columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'week', 'result'])
         y_test_data_DF = test_data_DF[['result']]
 
+
+        if(PREPROCESSING):
+            x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+            x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+            displayWinPerc(train_data_DF)
+
         # Create linear regression function
         clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
-                                intercept_scaling=1, class_weight='balanced', random_state=None,
-                                solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
+                                 intercept_scaling=1, class_weight='balanced', random_state=None,
+                                 solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
         
         
         # Fit model according to training data        
@@ -698,15 +730,11 @@ def main():
         y_pred_data_list = clf.predict_proba(x_test_data_DF)
         y_pred_data_list = y_pred_data_list[:, 1]
         
-        #displayFunc(y_pred_data_list, test_data_DF)
+        displayFunc(y_pred_data_list, test_data_DF)
 
         # Check our predictions against the completed test data games.
         # Round predicted probablity of a victory to a 1 or 0
-        #accuracy_score(y_test_data_DF, np.round(y_pred_data_list))
-
-        #x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
-        #x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
-        #displayWinPerc(completed_games_DF)
+        accuracy_score(y_test_data_DF, np.round(y_pred_data_list))
 
 if __name__ == "__main__":
     try:
