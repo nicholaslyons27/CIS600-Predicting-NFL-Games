@@ -822,26 +822,51 @@ def main():
         x_test_data_DF = test_data_DF.drop(columns=['away_name', 'away_abbr', 'away_score', 'home_name', 'home_abbr', 'home_score', 'week', 'result'])
         y_test_data_DF = test_data_DF[['result']]
 
+        # Loop twice so we can see non-preprocessed run versus preprocessed run
+        for i in range (1,3):
+            if(i == 1):
+                PREPROCESSING = False
+                if(PREPROCESSING):
+                    x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+                    x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+                    displayWinPerc(train_data_DF)
 
-        if(PREPROCESSING):
-            x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
-            x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
-            displayWinPerc(train_data_DF)
+                # Create linear regression function
+                clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
+                                        intercept_scaling=1, class_weight='balanced', random_state=None,
+                                        solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
+                
+                
+                # Fit model according to training data        
+                clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
+                y_pred_data_list = clf.predict_proba(x_test_data_DF)
+                y_pred_data_list = y_pred_data_list[:, 1]
 
-        # Create linear regression function
-        clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
-                                 intercept_scaling=1, class_weight='balanced', random_state=None,
-                                 solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
-        
-        
-        # Fit model according to training data        
-        clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
-        y_pred_data_list = clf.predict_proba(x_test_data_DF)
-        y_pred_data_list = y_pred_data_list[:, 1]
+                actual_scores = getScores(y_pred_data_list, test_data_DF)
+                conv_scores = conversion(y_pred_data_list)
+                displayFunc(y_pred_data_list, test_data_DF, conv_scores)
 
-        actual_scores = getScores(y_pred_data_list, test_data_DF)
-        conv_scores = conversion(y_pred_data_list)
-        displayFunc(y_pred_data_list, test_data_DF, conv_scores)
+            else:
+                PREPROCESSING = True
+                if(PREPROCESSING):
+                    x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+                    x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+                    displayWinPerc(train_data_DF)
+
+                # Create linear regression function
+                clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
+                                        intercept_scaling=1, class_weight='balanced', random_state=None,
+                                        solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
+                
+                
+                # Fit model according to training data        
+                clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
+                y_pred_data_list = clf.predict_proba(x_test_data_DF)
+                y_pred_data_list = y_pred_data_list[:, 1]
+
+                actual_scores = getScores(y_pred_data_list, test_data_DF)
+                conv_scores = conversion(y_pred_data_list)
+                displayFunc(y_pred_data_list, test_data_DF, conv_scores)
 
         # ROC Analysis
         fpr, tpr, thresholds = roc_curve(y_test_data_DF, y_pred_data_list)
