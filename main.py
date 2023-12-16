@@ -14,7 +14,7 @@ from scipy.stats import norm
 import statistics 
 
 OFFLINE_MODE = True
-PREPROCESSING = True
+PREPROCESSING = False
 
 """
 Coding Standard
@@ -48,7 +48,7 @@ def store_data(year, firstweek, lastweek):
         week_w_BOX = Boxscores(w, year)
         print(week_w_BOX)
         print(w)
-        with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'wb') as file: 
+        with open(f'.\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'wb') as file: 
             pickle.dump(week_w_BOX, file) 
         
         # For each game data dictionary
@@ -59,7 +59,7 @@ def store_data(year, firstweek, lastweek):
             game_BOX_DF = Boxscore(game_URI).dataframe
             print(g)
             print(game_URI)
-            game_BOX_DF.to_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
+            game_BOX_DF.to_csv(f'.\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv')
         
 def sportsipy_submodule_summary():
     """
@@ -139,7 +139,7 @@ def get_schedule(year, firstweek, lastweek):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'.\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -250,7 +250,7 @@ def get_game_data_for_weeks(weeks_list, year):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'.\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -265,7 +265,7 @@ def get_game_data_for_weeks(weeks_list, year):
             # Extract game URI and create Boxscore object
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
             if(OFFLINE_MODE):
-                game_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
+                game_BOX_DF = pd.read_csv(f'.\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
             else:
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
@@ -316,7 +316,7 @@ def agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list):
 
         # Create dataframe of stats we want to average for all weeks up to week w
         teams_weekly_avg_DF = weeks_games_SUM_DF[weeks_games_SUM_DF.week < w].drop(columns = ['score', 'week', 'game_won', 'game_lost'])
-
+  
         # Group each team's week info into one line (pandas.groupby)
         # Compute running average of per-game stats (pandas.mean)
         teams_weekly_avg_DF = teams_weekly_avg_DF.groupby(by=["name", "abbr"]).mean().reset_index().round(3)
@@ -388,17 +388,28 @@ def agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list):
                      'home_pass_completions', 'home_pass_touchdowns', 'home_pass_yards', 'home_penalties', 'home_points', 'home_rush_attempts', 'home_rush_touchdowns', 'home_rush_yards', 'home_time_of_possession', 'home_times_sacked',
                      'home_total_yards', 'home_turnovers', 'home_yards_from_penalties', 'home_yards_lost_from_sacks', 'home_fourth_down_perc', 'home_third_down_perc'])
 
-        # If game has been played add win/loss flag to the dataframe
-        if (teams_weekly_avg_diff_DF['winning_name'].isnull().values.any()):
-            teams_weekly_avg_diff_DF['result'] = np.nan
-            print(f"Week {w} games have not finished yet.")        
-        else:
+        if(PREPROCESSING):
+            if (teams_weekly_avg_diff_DF['winning_name'].isnull().values.any()):
+                teams_weekly_avg_diff_DF = teams_weekly_avg_diff_DF.dropna(subset="winning_abbr")
+
             teams_weekly_avg_diff_DF['result'] = teams_weekly_avg_diff_DF['winning_name'] == teams_weekly_avg_diff_DF['away_name']
             teams_weekly_avg_diff_DF['result'] = teams_weekly_avg_diff_DF['result'].astype('float')
             teams_weekly_avg_diff_DF = teams_weekly_avg_diff_DF.drop(columns = ['winning_name', 'winning_abbr']) 
             agg_weekly_diff_DF = pd.concat([agg_weekly_diff_DF, teams_weekly_avg_diff_DF])
             agg_weekly_diff_DF = agg_weekly_diff_DF.reset_index().drop(columns = 'index')
- 
+
+        else:
+            # If game has been played add win/loss flag to the dataframe
+            if (teams_weekly_avg_diff_DF['winning_name'].isnull().values.any()):
+                teams_weekly_avg_diff_DF['result'] = np.nan
+                print(f"Week {w} games have not finished yet.")        
+            else:
+                teams_weekly_avg_diff_DF['result'] = teams_weekly_avg_diff_DF['winning_name'] == teams_weekly_avg_diff_DF['away_name']
+                teams_weekly_avg_diff_DF['result'] = teams_weekly_avg_diff_DF['result'].astype('float')
+                teams_weekly_avg_diff_DF = teams_weekly_avg_diff_DF.drop(columns = ['winning_name', 'winning_abbr']) 
+                agg_weekly_diff_DF = pd.concat([agg_weekly_diff_DF, teams_weekly_avg_diff_DF])
+                agg_weekly_diff_DF = agg_weekly_diff_DF.reset_index().drop(columns = 'index')
+
     return agg_weekly_diff_DF
 
 def get_elo(year):
@@ -411,9 +422,9 @@ def get_elo(year):
         pandas.Dataframe: Filtered week by week 583 Elo rankings for given year
     """
     # Get stored CSV and filter for 2022 season regular season
-    elo_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\nfl_elo.csv')
+    elo_DF = pd.read_csv(f'.\\Data\\nfl_elo.csv')
     elo_DF = elo_DF[elo_DF['playoff'].isna()]
-    elo_DF = elo_DF[elo_DF['season'] >= year]
+    elo_DF = elo_DF[elo_DF['season'] == year]
     
     # Drop unwanted columns
     elo_DF = elo_DF.drop(columns = ['season', 'neutral' ,'playoff', 'elo_prob1', 'elo_prob2', 'elo1_post', 'elo2_post',
@@ -456,9 +467,9 @@ def get_spread(year, firstweek, lastweek):
     """
 
     # NFL schedule expanded in 2021. Handle bad input of 18th week prior to 2021 season
-    if (year < 2021 & lastweek > 17):
+    if (year < 2021 and lastweek > 17):
         lastweek = 17
-        print("TRUE")
+
 
     # List of week range. Note that lastweek is not inclusive so we add 1
     weeks_list = list(range(firstweek, lastweek + 1))
@@ -476,7 +487,7 @@ def get_spread(year, firstweek, lastweek):
 
         if(OFFLINE_MODE):
             # Load and deserialize Boxscores(W, YYYY)
-            with open(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
+            with open(f'.\\Data\\WeekBoxscore\\Boxscores_Wk{w}_{year}.pkl', 'rb') as file: 
                 week_w_BOX = pickle.load(file) 
         else:
             # Create Boxscores Object for current week w     
@@ -491,7 +502,7 @@ def get_spread(year, firstweek, lastweek):
             # Extract game URI and create Boxscore object
             game_URI = week_w_BOX.games[date_str][g]['boxscore']
             if(OFFLINE_MODE):
-                game_BOX_DF = pd.read_csv(f'C:\\work\\CIS600-Predicting-NFL-Games\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
+                game_BOX_DF = pd.read_csv(f'.\\Data\\GameBoxscore\\Boxscore_{game_URI}.csv', index_col=0)
             else:
                 game_BOX_DF = Boxscore(game_URI).dataframe
 
@@ -500,10 +511,13 @@ def get_spread(year, firstweek, lastweek):
             
             # Create dataframe out of select game statistic keys
             spread_DF = game_BOX_DF.filter(['vegas_line'])
+
+            # Handle pickem games
             if spread_DF['vegas_line'].loc[spread_DF.index[0]].strip() == "Pick":
                 spread_double = 0
 
-            else:         
+            else:   
+                # If not pickem extract score and adjust sign       
                 spread_DF[['favorite', 'spread']] = spread_DF['vegas_line'].str.split('-', n=1, expand=True)
             
                 spread_double = float(spread_DF['spread'].loc[spread_DF.index[0]])
@@ -522,7 +536,6 @@ def get_spread(year, firstweek, lastweek):
         # Concat current game to season long dataframe
         schedule_SUM_DF = pd.concat([schedule_SUM_DF, week_games_SUM_DF]).reset_index().drop(columns='index')
 
-        print(schedule_SUM_DF)
     return schedule_SUM_DF
 
 def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
@@ -539,17 +552,19 @@ def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
     """
     # Merge tables based on intersection of abbreviations
     weekly_agg_DF = pd.merge(weekly_agg_DF, elo_DF, how = 'inner', left_on = ['home_abbr', 'away_abbr'], right_on = ['team1', 'team2']).drop(columns = ['date', 'team1', 'team2'])
-    
+
+
     if(PREPROCESSING):
         weekly_agg_DF = pd.merge(weekly_agg_DF, spread_DF, how = 'inner', on = ['home_abbr', 'away_abbr', 'week', 'away_name', 'home_name']).drop(columns = ['winning_name', 'winning_abbr'])
 
+    
     # Calculate difference between opponent's elo
     weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
     weekly_agg_DF['qb_dif'] = weekly_agg_DF['qb2_value_pre'] - weekly_agg_DF['qb1_value_pre']
 
     # Drop unused elo stats
     weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
-
+    
     return weekly_agg_DF
 
 def prep_model_data(current_week, weeks_list, year):
@@ -587,6 +602,7 @@ def prep_model_data(current_week, weeks_list, year):
     current_week = current_week - 1
     training_DF = weekly_agg_DF[weekly_agg_DF['week'] < current_week]
     test_DF = weekly_agg_DF[weekly_agg_DF.week == current_week]
+
     return test_DF, training_DF
 
 
@@ -674,28 +690,17 @@ def displayWinPerc(completed_games_DF):
     plt.show()
 
 def main():
-    if(True):
-        firstweek = 1
-        current_week = 18
-        weeks_list = list(range(firstweek, current_week + 1))
-        year = 2021
-        print(get_spread(year, 1, 18))
-    
-    if(False):
-        store_data(2020, 18, 18)
-
-    if (False):
-        
+    if (True):
         firstweek = 1
         current_week = 17
         weeks_list = list(range(firstweek, current_week + 1))
-        year = 2022
+        year = 2020
         future_games__2020_DF, completed_games_2020_DF = prep_model_data(current_week, weeks_list, year)
 
         firstweek = 1
         current_week = 18
         weeks_list = list(range(firstweek, current_week + 1))
-        year = 2022
+        year = 2021
         future_games__2021_DF, completed_games_2021_DF = prep_model_data(current_week, weeks_list, year)
 
         firstweek = 1
