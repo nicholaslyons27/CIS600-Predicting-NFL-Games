@@ -7,7 +7,7 @@ import sys
 import pickle
 from IPython.display import display, HTML
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, roc_curve, auc, precision_recall_curve, brier_score_loss
 import math
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -562,6 +562,7 @@ def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
     # Calculate difference between opponent's elo
     weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
     weekly_agg_DF['qb_dif'] = weekly_agg_DF['qb2_value_pre'] - weekly_agg_DF['qb1_value_pre']
+    #weekly_agg_DF['score_dif'] = weekly_agg_DF['away_score'] - weekly_agg_DF['home_score']
 
     # Drop unused elo stats
     weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
@@ -797,8 +798,6 @@ def conversion(pred_list):
 
     return conv_list
 
-
-
 def main():
     if (True):
         firstweek = 1
@@ -843,6 +842,54 @@ def main():
         actual_scores = getScores(y_pred_data_list, test_data_DF)
         conv_scores = conversion(y_pred_data_list)
         displayFunc(y_pred_data_list, test_data_DF, conv_scores)
+
+        # ROC Analysis
+        fpr, tpr, thresholds = roc_curve(y_test_data_DF, y_pred_data_list)
+        roc_auc = auc(fpr, tpr)
+
+        # Plot ROC Curve
+        plt.figure()
+        plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        plt.xlim([-0.05, 1.0])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate (1 - Specificity)')
+        plt.ylabel('True Positive Rate (Sensitivity)')
+        plt.title('Receiver Operating Characteristic')
+        plt.legend(loc="lower right")
+        plt.show()
+
+        # Plot Precision-Recall Curve
+        precision, recall, thresholds = precision_recall_curve(y_test_data_DF, y_pred_data_list)
+        pr_auc = auc(recall, precision)
+        plt.figure()
+        plt.plot(recall, precision, color='darkorange', lw=2, label='PR curve (area = %0.2f)' % pr_auc)
+        plt.xlim([-0.05, 1.0])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.title('Precision Recall Curve')
+        plt.legend(loc="lower right")
+        plt.show()
+
+        # Plot Precision/Recall vs Threshold Curve
+        plt.figure()
+        plt.plot(thresholds, precision[1:], color='darkorange', lw=2, label='Precision')
+        plt.plot(thresholds, recall[1:], color='navy', lw=2, label='Recall')
+        plt.xlim([-0.05, 1.0])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('Threshold')
+        plt.ylabel('Precision/Recall')
+        plt.title('Precision Recall Curve')
+        plt.legend(loc="lower right")
+        plt.show()
+
+        y_true = y_test_data_DF['result'].astype(int).values
+        y_prob = y_pred_data_list
+
+        # Calculate Brier Score
+        brier_score = brier_score_loss(y_true, y_prob)
+        print(f"Brier Score: {round(brier_score, 3)}")
 
         mse = np.square(np.subtract(actual_scores, conv_scores)).mean()
         rmse = math.sqrt(mse)
