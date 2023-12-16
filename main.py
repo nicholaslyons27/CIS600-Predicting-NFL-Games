@@ -152,11 +152,11 @@ def get_schedule(year, firstweek, lastweek):
         # For each game data dictionary
         for g in range(len(week_w_BOX.games[date_str])):
             # Create dataframe out of select game statistic keys
-            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr'])
-
+            game_SUM_DF = pd.DataFrame(week_w_BOX.games[date_str][g], index=[0], columns=['away_name', 'away_abbr','away_score', 'home_name', 'home_abbr', 'home_score', 'winning_name', 'winning_abbr'])
+            
             # Add week # to each index
             game_SUM_DF['week'] = w
-
+            
             # Concat current game to list of this weeks game
             week_games_SUM_DF = pd.concat([week_games_SUM_DF, game_SUM_DF])
 
@@ -356,7 +356,7 @@ def agg_weekly_data(schedule_DF, weeks_games_SUM_DF, current_week, weeks_list):
         # Merge intersection of season long averages into upcoming weeks schedule
         away_df = pd.merge(single_week_games_DF,teams_weekly_avg_DF.add_prefix('away_'), on = ['away_name', 'away_abbr'])
         home_df = pd.merge(single_week_games_DF,teams_weekly_avg_DF.add_prefix('home_'), on = ['home_name', 'home_abbr'])    
-        teams_weekly_avg_DF = pd.merge(away_df,home_df, on = ['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr', 'week'])         
+        teams_weekly_avg_DF = pd.merge(away_df,home_df, on = ['away_name', 'away_abbr', 'home_name', 'home_abbr', 'winning_name', 'winning_abbr', 'week', 'home_score', 'away_score'])         
         
         # Create differential of of Away-Home season long averages
         teams_weekly_avg_diff_DF = teams_weekly_avg_DF
@@ -552,17 +552,16 @@ def merge_rankings(weekly_agg_DF,elo_DF, spread_DF):
         pandas.Dataframe: Week by week statistical difference between two opponents including elo rating
     """
     # Merge tables based on intersection of abbreviations
+    
     weekly_agg_DF = pd.merge(weekly_agg_DF, elo_DF, how = 'inner', left_on = ['home_abbr', 'away_abbr'], right_on = ['team1', 'team2']).drop(columns = ['date', 'team1', 'team2'])
 
 
     if(PREPROCESSING):
-        weekly_agg_DF = pd.merge(weekly_agg_DF, spread_DF, how = 'inner', on = ['home_abbr', 'away_abbr', 'week', 'away_name', 'home_name']).drop(columns = ['winning_name', 'winning_abbr'])
+        weekly_agg_DF = pd.merge(weekly_agg_DF, spread_DF, how = 'inner', on = ['home_abbr', 'away_abbr', 'week', 'away_name', 'home_name', 'home_score', 'away_score']).drop(columns = ['winning_name', 'winning_abbr'])
 
-    
     # Calculate difference between opponent's elo
     weekly_agg_DF['elo_dif'] = weekly_agg_DF['elo2_pre'] - weekly_agg_DF['elo1_pre']
     weekly_agg_DF['qb_dif'] = weekly_agg_DF['qb2_value_pre'] - weekly_agg_DF['qb1_value_pre']
-    #weekly_agg_DF['score_dif'] = weekly_agg_DF['away_score'] - weekly_agg_DF['home_score']
 
     # Drop unused elo stats
     weekly_agg_DF = weekly_agg_DF.drop(columns = ['elo1_pre', 'elo2_pre', 'qb1_value_pre', 'qb2_value_pre'])
@@ -608,18 +607,22 @@ def prep_model_data(current_week, weeks_list, year):
     return test_DF, training_DF
 
 
-def displayFunc(y_pred_data_list, test_data_DF):
+def displayFunc(y_pred_data_list, test_data_DF, conv_scores):
     """Displays weekly projections in a more human redable format. 
 
     Args:
         y_pred_data_list (array): Array of predicted win probability
         test_data_DF (pandas.Dataframe): test data set
+        conv_scores (array): Array of predicted win probability as a point differental
     """
+    print(print(f"{'Away Team' : <20}{'Win Probability Over' : ^30}{'Home Team' : <25}{"Vegas Spread" : ^7}"))
     for g in range(len(y_pred_data_list)):
         win_prob = round(y_pred_data_list[g], 2)
+        spread = float(-1*conv_scores[g])
         away_team = test_data_DF.reset_index().drop(columns='index').loc[g, 'away_name']
         home_team = test_data_DF.reset_index().drop(columns='index').loc[g, 'home_name']
-        print(f'The {away_team} have a probability of {win_prob} of beating the {home_team}.')
+        print(f"{away_team : <20}{win_prob : ^30}{home_team : <25} ({'{:+}'.format(spread) : ^7})")
+
 
 def correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF):
     """Removes highly correlated features from training and test data
@@ -629,7 +632,7 @@ def correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF):
         x_test_data_DF (pandas.Dataframe): Test data set
 
     Returns:
-        x_training_data_cleaned_DF (pandas.Dataframe), x_test_data_cleaned_DF (pandas.Dataframe): Training and test data sets with highly correlated features removeds
+        x_training_data_cleaned_DF (pandas.Dataframe), x_test_data_cleaned_DF (pandas.Dataframe): Training and test data sets with highly correlated features removed
     """
     # Create correlation out of training data
     corr = x_training_data_DF.corr()
@@ -651,15 +654,16 @@ def correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF):
     return (x_training_data_DF.drop(columns = to_drop), x_test_data_DF.drop(columns = to_drop))
 
 def generalDimensionalityReduction(x_training_data_DF, x_test_data_DF):
-    """_summary_
+    """Removes select features from training and test data
 
     Args:
-        x_training_data_DF (_type_): _description_
-        x_test_data_DF (_type_): _description_
+        x_training_data_DF (pandas.Dataframe): Training data set 
+        x_test_data_DF (pandas.Dataframe): Test data set
 
     Returns:
-        _type_: _description_
+        x_training_data_cleaned_DF (Array), x_test_data_cleaned_DF (pandas.Dataframe): Training and test data sets with select features removed
     """
+   
     to_drop = ['quality', 'importance', 'total_rating', 'win_perc_dif']
     return (x_training_data_DF.drop(columns = to_drop), x_test_data_DF.drop(columns = to_drop))
 
@@ -695,8 +699,6 @@ def getScores(y_pred_data_list, test_data_DF):
     actual_scores = list(range(len(y_pred_data_list)))
     for g in range(len(y_pred_data_list)):
         actual_scores[g] = test_data_DF.reset_index().drop(columns='index').loc[g, 'away_score'] - test_data_DF.reset_index().drop(columns='index').loc[g, 'home_score']
-        print("Results of away - home: ")
-        print(actual_scores[g])
     return actual_scores
 
 def conversion(pred_list):
@@ -787,7 +789,7 @@ def conversion(pred_list):
                 break
 
         # If the prediction is exactly 0.5, set mapped_value to 0
-        if rounded_pred == 0.5:
+        if 0.488 < rounded_pred < 0.51:
             mapped_value = 0
 
         # Append the mapped value if found, else the original prediction
@@ -800,12 +802,6 @@ def conversion(pred_list):
 def main():
     if (True):
         firstweek = 1
-        current_week = 17
-        weeks_list = list(range(firstweek, current_week + 1))
-        year = 2020
-        future_games__2020_DF, completed_games_2020_DF = prep_model_data(current_week, weeks_list, year)
-
-        firstweek = 1
         current_week = 18
         weeks_list = list(range(firstweek, current_week + 1))
         year = 2021
@@ -815,10 +811,11 @@ def main():
         current_week = 18
         weeks_list = list(range(firstweek, current_week + 1))
         year = 2022
-        future_games__2022_DF, test_data_DF = prep_model_data(current_week, weeks_list, year)
+        future_games__2022_DF, completed_games_2022_DF = prep_model_data(current_week, weeks_list, year)
 
         # Concat 2020 and 2021 training data
-        train_data_DF = pd.concat([completed_games_2020_DF, completed_games_2021_DF]).reset_index().drop(columns='index')
+        train_data_DF = pd.concat([completed_games_2021_DF, future_games__2021_DF]).reset_index().drop(columns='index')
+        test_data_DF = pd.concat([completed_games_2022_DF, future_games__2022_DF]).reset_index().drop(columns='index')
 
         # Separate input training data from result training outcome
         x_training_data_DF = train_data_DF.drop(columns=['away_name', 'away_abbr','away_score','home_name', 'home_abbr', 'home_score', 'week', 'result'])
@@ -845,20 +842,16 @@ def main():
 
         actual_scores = getScores(y_pred_data_list, test_data_DF)
         conv_scores = conversion(y_pred_data_list)
-        displayFunc(y_pred_data_list, test_data_DF)
-
-        for g in range(len(conv_scores)):
-            print(conv_scores[g])
+        displayFunc(y_pred_data_list, test_data_DF, conv_scores)
 
         mse = np.square(np.subtract(actual_scores, conv_scores)).mean()
         rmse = math.sqrt(mse)
-        print("Root Mean Square Error:\n")
-        print(rmse)
-
-
+        print(f"Root Mean Square Error: {round(rmse, 3)}")
+    
         # Check our predictions against the completed test data games.
         # Round predicted probablity of a victory to a 1 or 0
-        accuracy_score(y_test_data_DF, np.round(y_pred_data_list))
+        straight_up_perc = accuracy_score(y_test_data_DF, np.round(y_pred_data_list))
+        print(f"Straight Up Accuracy:  {'{:.2%}'.format(straight_up_perc)}")
 
 if __name__ == "__main__":
     try:
