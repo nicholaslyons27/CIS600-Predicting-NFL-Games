@@ -685,7 +685,7 @@ def displayWinPerc(completed_games_DF):
     x_max = completed_games_DF['win_perc_dif'].max()
 
     # Create and plot probability density function 
-    sns.histplot(x = completed_games_DF['win_perc_dif'], edgecolor = None, color = 'lightblue', bins = 15, stat = 'density', label = '2022 Win Diff Probablity Density Function')
+    sns.histplot(x = completed_games_DF['win_perc_dif'], edgecolor = None, color = 'lightblue', bins = 15, stat = 'density', label = '2021 Win Diff Probablity Density Function')
     
     # Create and plot normal distribution function
     x_range = np.arange(x_min, x_max, 0.001)
@@ -821,61 +821,47 @@ def main():
         y_training_data_DF = train_data_DF[['result']]
         x_test_data_DF = test_data_DF.drop(columns=['away_name', 'away_abbr', 'away_score', 'home_name', 'home_abbr', 'home_score', 'week', 'result'])
         y_test_data_DF = test_data_DF[['result']]
+    
+        if(PREPROCESSING):
+            x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+            x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
+            displayWinPerc(train_data_DF)
 
-        # Loop twice so we can see non-preprocessed run versus preprocessed run
-        for i in range (1,3):
-            if(i == 1):
-                PREPROCESSING = False
-                if(PREPROCESSING):
-                    x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
-                    x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
-                    displayWinPerc(train_data_DF)
+        # Create linear regression function
+        clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
+                                intercept_scaling=1, class_weight='balanced', random_state=None,
+                                solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
+        
+        
+        # Fit model according to training data        
+        clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
+        y_pred_data_list = clf.predict_proba(x_test_data_DF)
+        y_pred_data_list = y_pred_data_list[:, 1]
 
-                # Create linear regression function
-                clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
-                                        intercept_scaling=1, class_weight='balanced', random_state=None,
-                                        solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
-                
-                
-                # Fit model according to training data        
-                clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
-                y_pred_data_list = clf.predict_proba(x_test_data_DF)
-                y_pred_data_list = y_pred_data_list[:, 1]
-
-                actual_scores = getScores(y_pred_data_list, test_data_DF)
-                conv_scores = conversion(y_pred_data_list)
-                displayFunc(y_pred_data_list, test_data_DF, conv_scores)
-
-            else:
-                PREPROCESSING = True
-                if(PREPROCESSING):
-                    x_training_data_DF, x_test_data_DF = correlationDimensionalityReduction(x_training_data_DF, x_test_data_DF)
-                    x_training_data_DF, x_test_data_DF = generalDimensionalityReduction(x_training_data_DF, x_test_data_DF)
-                    displayWinPerc(train_data_DF)
-
-                # Create linear regression function
-                clf = LogisticRegression(penalty='l1', dual=False, tol=0.001, C=1.0, fit_intercept=True,
-                                        intercept_scaling=1, class_weight='balanced', random_state=None,
-                                        solver='liblinear', max_iter=1000, multi_class='ovr', verbose=0)
-                
-                
-                # Fit model according to training data        
-                clf.fit(x_training_data_DF, np.ravel(y_training_data_DF.values))
-                y_pred_data_list = clf.predict_proba(x_test_data_DF)
-                y_pred_data_list = y_pred_data_list[:, 1]
-
-                actual_scores = getScores(y_pred_data_list, test_data_DF)
-                conv_scores = conversion(y_pred_data_list)
-                displayFunc(y_pred_data_list, test_data_DF, conv_scores)
+        actual_scores = getScores(y_pred_data_list, test_data_DF)
+        conv_scores = conversion(y_pred_data_list)
+        displayFunc(y_pred_data_list, test_data_DF, conv_scores)
 
         # ROC Analysis
-        fpr, tpr, thresholds = roc_curve(y_test_data_DF, y_pred_data_list)
-        roc_auc = auc(fpr, tpr)
+        fpr_new, tpr_new, thresholds_new = roc_curve(y_test_data_DF, y_pred_data_list)
+        with open(f'.\\Data\\RocData\\fpr_orig.pkl', 'rb') as file: 
+            fpr_orig = pickle.load(file)  
+
+        with open(f'.\\Data\\RocData\\tpr_orig.pkl', 'rb') as file: 
+            tpr_orig = pickle.load(file)  
+
+        with open(f'.\\Data\\RocData\\thresholds_orig.pkl', 'rb') as file: 
+            thresholds_orig = pickle.load(file)  
+
+
+        roc_auc_orig = auc(fpr_orig, tpr_orig)
+        roc_auc_new = auc(fpr_new, tpr_new)
 
         # Plot ROC Curve
         plt.figure()
-        plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
-        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        plt.plot(fpr_new, tpr_new, color='lightblue', lw=2, label='NFLPY Preprocessing (AOC = %0.2f)' % roc_auc_new)
+        plt.plot(fpr_orig, tpr_orig, color='darkorange', lw=2, label='ActiveState Preprocessing (AOC = %0.2f)' % roc_auc_orig)
+        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='Random Predictor (AOC = %0.2f)' % 0.5)
         plt.xlim([-0.05, 1.0])
         plt.ylim([-0.05, 1.05])
         plt.xlabel('False Positive Rate (1 - Specificity)')
